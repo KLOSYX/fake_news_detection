@@ -127,10 +127,11 @@ hydra:
     - hydra.mode=RUN
     task:
     - experiment=stree_classify_exp
+    - logger=tensorboard
   job:
     name: train_ddp_process_3
     chdir: null
-    override_dirname: experiment=stree_classify_exp
+    override_dirname: experiment=stree_classify_exp,logger=tensorboard
     id: ???
     num: ???
     config_name: train.yaml
@@ -168,7 +169,7 @@ hydra:
       extras: default.yaml
       paths: default.yaml
       trainer: deepspeed.yaml
-      logger: wandb.yaml
+      logger: tensorboard
       callbacks: default.yaml
       model: dist_classify.yaml
       datamodule: mix_modal_data.yaml

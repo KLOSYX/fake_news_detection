@@ -1,1 +1,2 @@
 - experiment=stree_classify_exp
+- logger=tensorboard

@@ -69,18 +69,16 @@ callbacks:
   rich_progress_bar:
     _target_: pytorch_lightning.callbacks.RichProgressBar
 logger:
-  wandb:
-    _target_: pytorch_lightning.loggers.wandb.WandbLogger
-    save_dir: ${paths.output_dir}
-    offline: false
-    id: null
-    anonymous: null
-    project: dist_classify_debug
-    log_model: false
+  tensorboard:
+    _target_: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
+    save_dir: ${paths.output_dir}/tensorboard/
+    name: null
+    log_graph: false
+    default_hp_metric: true
     prefix: ''
-    group: ''
+  wandb:
+    project: dist_classify_debug
     tags: ${tags}
-    job_type: ''
 trainer:
   _target_: pytorch_lightning.Trainer
   default_root_dir: ${paths.output_dir}

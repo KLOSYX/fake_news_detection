@@ -1,8 +1,6 @@
 from argparse import ArgumentParser
-from numpy import average
-from sklearn import multiclass
 
-from transformers import BertModel, BertConfig, get_constant_schedule_with_warmup
+from transformers import get_constant_schedule_with_warmup
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import *
 import torch
@@ -13,31 +11,34 @@ from sklearn.metrics import confusion_matrix
 import nni
 
 from utils.focal_loss import FocalLoss
+from models.components.clip_base import ClipBase
 from utils.plot_confusion_matrix import plot_confusion_matrix
 
 
-class DistClassify(pl.LightningModule):
+class ClipClassify(pl.LightningModule):
     def __init__(self,
-                 bert_name='hfl/chinese-macbert-base',
+                 clip_name='openai/clip-vit-base-patch32',
+                 bert_name='IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese',
                  num_classes=62,
                  focal_loss=False,
                  learning_rate=1e-5,
                  weight_decay=0.05,
                  dropout_prob=0.1,
+                 load_mlm_checkpoint=False,
                  label_smooth=False,
                  **kwargs) -> None:
         super().__init__()
         self.save_hyperparameters()
 
         # model
-        config = BertConfig.from_pretrained(
-            bert_name, cache_dir='/data/.cache')
-        config.hidden_dropout_prob = dropout_prob
-        config.attention_probs_dropout_prob = dropout_prob
-        self.bert = BertModel.from_pretrained(
-            bert_name, cache_dir='/data/.cache', config=config)
-        self.proj = nn.Linear(config.hidden_size, num_classes)
-
+        self.model = ClipBase(clip_name, bert_name)
+        self.projection = nn.Linear(self.model.clip.config.projection_dim * 2, 256)
+        self.dropout = nn.Dropout(dropout_prob)
+        self.classifier = nn.Linear(256, num_classes)
+        self.act = nn.GELU()
+        
+        self.model.freeze_clip()
+        
         # loss function
         self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1 if label_smooth else 0) if not focal_loss else FocalLoss(
             alpha=[1] * num_classes, num_classes=num_classes)
@@ -53,9 +54,15 @@ class DistClassify(pl.LightningModule):
     def get_top_k_metric_collection(self, metric='Accuracy', prefix='train', num_classes=None, top_k=3, **kwargs):
         return torchmetrics.MetricCollection({f'{prefix}/{metric.lower()}_top_{k}': getattr(torchmetrics, metric)(num_classes=num_classes, top_k=k, **kwargs) for k in range(1, top_k + 1)})
 
-    def forward(self, tokens):
-        outputs = self.bert(**tokens)
-        logits = self.proj(outputs.pooler_output)
+    def forward(self, img_encoded, text_encoded):
+        img_features, text_features = self.model(text_encoded, img_encoded)
+        x = torch.cat([img_features, text_features], dim=1) # [N, hidden_size * 2]
+        x = self.dropout(x)
+        x = self.act(x)
+        x = self.projection(x)
+        x = self.dropout(x)
+        x = self.act(x) # [N, 256]
+        logits = self.classifier(x) # [N, num_classes]
         return logits
 
     def configure_optimizers(self):
@@ -66,8 +73,8 @@ class DistClassify(pl.LightningModule):
         return [optimizer], [{'scheduler': scheduler, 'interval': 'step'}]
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        tokens, labels = batch
-        logits = self(tokens)
+        img_encoded, text_encoded, _, labels = batch
+        logits = self(img_encoded, text_encoded)
         loss = self.criterion(logits, labels)
         self.log_dict({'train/loss': loss})
         self.log_dict(self.train_acc(logits, labels))
@@ -75,8 +82,8 @@ class DistClassify(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        tokens, labels = batch
-        logits = self(tokens)
+        img_encoded, text_encoded, _, labels = batch
+        logits = self(img_encoded, text_encoded)
         loss = self.criterion(logits, labels)
         self.log_dict({'val/loss': loss})
         self.log_dict(self.val_acc(logits, labels))
@@ -102,8 +109,8 @@ class DistClassify(pl.LightningModule):
                 nni.report_intermediate_result(metric)
                 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        tokens, labels = batch
-        logits = self(tokens)
+        img_encoded, text_encoded, _, labels = batch
+        logits = self(img_encoded, text_encoded)
         loss = self.criterion(logits, labels)
         self.log_dict({'test/loss': loss})
         self.log_dict(self.test_acc(logits, labels))
@@ -114,6 +121,8 @@ class DistClassify(pl.LightningModule):
         parser = ArgumentParser(parents=[parser], add_help=False)
         parser.add_argument('--draw_confusion_matrix', action='store_true', help='draw confusion matrix or not')
         parser.add_argument('--num_classes', type=int, default=63)
+        parser.add_argument('--clip_name', type=str, 
+                            default="openai/clip-vit-base-patch32", help='pretrained clip model name')
         parser.add_argument('--bert_name', type=str,
                             default='hfl/chinese-macbert-base', help='text decoder')
         parser.add_argument('--dropout_prob', type=float,
