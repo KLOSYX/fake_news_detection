@@ -50,7 +50,7 @@ class DistClassify(pl.LightningModule):
         
         
     def get_top_k_metric_collection(self, metric='Accuracy', prefix='train', num_classes=None, top_k=3, **kwargs):
-        return torchmetrics.MetricCollection({f'{prefix}_{metric.lower()}_top_{k}': getattr(torchmetrics, metric)(num_classes=num_classes, top_k=k, **kwargs) for k in range(1, top_k + 1)})
+        return torchmetrics.MetricCollection({f'{prefix}/{metric.lower()}_top_{k}': getattr(torchmetrics, metric)(num_classes=num_classes, top_k=k, **kwargs) for k in range(1, top_k + 1)})
 
     def forward(self, tokens):
         outputs = self.bert(**tokens)
@@ -68,7 +68,7 @@ class DistClassify(pl.LightningModule):
         tokens, labels = batch
         logits = self(tokens)
         loss = self.criterion(logits, labels)
-        self.log_dict({'train_loss': loss})
+        self.log_dict({'train/loss': loss})
         self.log_dict(self.train_acc(logits, labels))
         self.log_dict(self.train_f1_score(logits, labels))
         return loss
@@ -77,7 +77,7 @@ class DistClassify(pl.LightningModule):
         tokens, labels = batch
         logits = self(tokens)
         loss = self.criterion(logits, labels)
-        self.log_dict({'val_loss': loss})
+        self.log_dict({'val/loss': loss})
         self.log_dict(self.val_acc(logits, labels))
         self.log_dict(self.val_f1_score(logits, labels))
         return (logits, labels)
@@ -99,6 +99,14 @@ class DistClassify(pl.LightningModule):
             metric = self.val_acc.compute()['val_accuracy_top_1'].item()
             if self.global_rank == 0:
                 nni.report_intermediate_result(metric)
+                
+    def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
+        tokens, labels = batch
+        logits = self(tokens)
+        loss = self.criterion(logits, labels)
+        self.log_dict({'test/loss': loss})
+        self.log_dict(self.val_acc(logits, labels))
+        self.log_dict(self.val_f1_score(logits, labels))
 
     @staticmethod
     def add_model_args(parser):

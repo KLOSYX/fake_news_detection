@@ -14,16 +14,16 @@ defaults:
 # this allows you to overwrite only specified parameters
 
 tags: ["dept_dist", "stree", "classify"]
-monitor: val_accuracy_top_1
+monitor: val/accuracy_top_1
 bert_name_or_path: IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese
 
-test: False
+test: True
 
 seed: 42
 
 trainer:
-  min_epochs: 10
-  max_epochs: 10
+  min_epochs: 0
+  max_epochs: 6
   gradient_clip_val: 0
   gpus: 1,2,3,4
 
@@ -39,6 +39,7 @@ callbacks:
   early_stopping:
     monitor: ${monitor}
     mode: max
+    patience: 3
 
 model:
   learning_rate: 0.0001
@@ -46,3 +47,4 @@ model:
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}
+  eda: true

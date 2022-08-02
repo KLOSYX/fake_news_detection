@@ -4,7 +4,7 @@ tags:
 - stree
 - classify
 train: true
-test: false
+test: true
 ckpt_path: null
 seed: 42
 datamodule:
@@ -13,11 +13,11 @@ datamodule:
   tokenizer_name: ${bert_name_or_path}
   whole_word_mask: false
   mlm: false
-  eda: false
+  eda: true
   eda_prob: 0.5
   max_length: 200
   train_path: /data/clean_raw_text/dataset/street_train_eda_0.json
-  test_path: /data/clean_raw_text/dataset/street_train_eda_0.json
+  test_path: /data/clean_raw_text/dataset/street_test.json
   val_ratio: 0.1
   multimodal: false
   batch_size_per_gpu: 32
@@ -55,7 +55,7 @@ callbacks:
     _target_: pytorch_lightning.callbacks.EarlyStopping
     monitor: ${monitor}
     min_delta: 0.0
-    patience: 100
+    patience: 3
     verbose: false
     mode: max
     strict: true
@@ -84,8 +84,8 @@ logger:
 trainer:
   _target_: pytorch_lightning.Trainer
   default_root_dir: ${paths.output_dir}
-  min_epochs: 10
-  max_epochs: 10
+  min_epochs: 0
+  max_epochs: 6
   gpus: 1,2,3,4
   strategy: deepspeed_stage_2
   num_nodes: 1
@@ -100,5 +100,5 @@ extras:
   ignore_warnings: false
   enforce_tags: true
   print_config: true
-monitor: val_accuracy_top_1
+monitor: val/accuracy_top_1
 bert_name_or_path: IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese
