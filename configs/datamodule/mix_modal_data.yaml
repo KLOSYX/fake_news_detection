@@ -1,0 +1,15 @@
+_target_: src.datamodules.mix_modal_data.MixModalData
+only_img: False
+tokenizer_name: /data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm
+whole_word_mask: False
+mlm: False
+eda: False
+eda_prob: 0.5
+max_length: 200
+train_path: /data/clean_raw_text/dataset/street_train_eda_0.json
+test_path: /data/clean_raw_text/dataset/street_train_eda_0.json
+val_ratio: 0.1
+multimodal: False
+batch_size_per_gpu: 32
+num_workers: 32
+pin_memory: False
