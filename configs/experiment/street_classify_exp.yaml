@@ -26,10 +26,11 @@ trainer:
   max_epochs: 8
   gradient_clip_val: 0
   gpus: 1,2,3,4
+  precision: 16
 
 logger:
   wandb:
-    project: dist_classify_debug
+    project: street_dist_classify
     tags: ${tags}
 
 callbacks:
@@ -39,15 +40,15 @@ callbacks:
   early_stopping:
     monitor: ${monitor}
     mode: max
-    patience: 2
+    patience: 3
 
 model:
-  learning_rate: 0.00001
+  learning_rate: 0.0001
   bert_name: ${bert_name_or_path}
-  dropout_prob: 0.2
-  weight_decay: 0.3
+  dropout_prob: 0.1
+  weight_decay: 0.05
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}
   eda: true
-  eda_prob: 0.8
+  eda_prob: 1
