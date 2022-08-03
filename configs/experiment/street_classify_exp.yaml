@@ -13,7 +13,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["dept_dist", "stree", "classify"]
+tags: ["dept_dist", "street", "classify"]
 monitor: val/accuracy_top_1
 bert_name_or_path: IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese
 

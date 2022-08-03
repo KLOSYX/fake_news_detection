@@ -1,0 +1,53 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: mix_modal_data.yaml
+  - override /model: clip_classify.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: deepspeed.yaml
+  - override /logger: wandb.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["dept_dist", "street", "classify"]
+monitor: val/accuracy_top_1
+
+test: true
+
+seed: 42
+
+trainer:
+  min_epochs: 12
+  max_epochs: 12
+  gradient_clip_val: 0
+  gpus: 1,2,3,4
+  log_every_n_steps: 1
+
+logger:
+  wandb:
+    project: dist_classify_debug
+    tags: ${tags}
+
+callbacks:
+  model_checkpoint:
+    monitor: ${monitor}
+    mode: max
+  early_stopping:
+    monitor: ${monitor}
+    mode: max
+    patience: 2
+
+model:
+  learning_rate: 0.0001
+  weight_decay: 0.3
+  dropout_prob: 0.2
+  num_warmup_steps: 0
+
+datamodule:
+  batch_size_per_gpu: 8
+  tokenizer_name: IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese
+  eda: true
+  eda_prob: 1
+  multimodal: true
+  only_img: true

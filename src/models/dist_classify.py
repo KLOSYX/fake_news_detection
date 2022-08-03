@@ -136,21 +136,3 @@ class DistClassify(pl.LightningModule):
         self.log_dict({"test/loss": loss}, sync_dist=True)
         self.log_dict(self.test_acc(logits, labels), sync_dist=True)
         # self.log_dict(self.val_f1_score(logits, labels))
-
-    @staticmethod
-    def add_model_args(parser):
-        parser = ArgumentParser(parents=[parser], add_help=False)
-        parser.add_argument(
-            "--draw_confusion_matrix", action="store_true", help="draw confusion matrix or not"
-        )
-        parser.add_argument("--num_classes", type=int, default=63)
-        parser.add_argument(
-            "--bert_name", type=str, default="hfl/chinese-macbert-base", help="text decoder"
-        )
-        parser.add_argument("--dropout_prob", type=float, default=0.1, help="dropout probability")
-        parser.add_argument(
-            "--num_warmup_steps", type=int, default=0, help="number of warmup steps"
-        )
-        parser.add_argument("--label_smooth", action="store_true", help="label smooth")
-        parser.add_argument("--focal_loss", action="store_true", help="use focal loss")
-        return parser
