@@ -13,7 +13,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["dept_dist", "street", "classify"]
+tags: ["dept_dist", "district", "classify"]
 monitor: val/accuracy_top_1
 bert_name_or_path: /data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm
 
@@ -23,14 +23,14 @@ seed: 42
 
 trainer:
   min_epochs: 0
-  max_epochs: 8
+  max_epochs: 12
   gradient_clip_val: 0
   gpus: 1,2,3,4
   precision: 16
 
 logger:
   wandb:
-    project: street_dist_classify
+    project: district_dist_classify
     tags: ${tags}
 
 callbacks:
@@ -47,8 +47,11 @@ model:
   bert_name: ${bert_name_or_path}
   dropout_prob: 0.1
   weight_decay: 0.05
+  num_classes: 62
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}
+  train_path: /data/clean_raw_text/dataset/district_train_eda_0.json
+  test_path: /data/clean_raw_text/dataset/district_test.json
   eda: true
   eda_prob: 1
