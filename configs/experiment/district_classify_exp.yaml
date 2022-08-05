@@ -25,7 +25,7 @@ trainer:
   min_epochs: 0
   max_epochs: 12
   gradient_clip_val: 0
-  gpus: 1,2,3,4
+  devices: 1,2,3,4
   precision: 16
 
 logger:
@@ -43,7 +43,7 @@ callbacks:
     patience: 3
 
 model:
-  learning_rate: 0.0001
+  learning_rate: 0.00001
   bert_name: ${bert_name_or_path}
   dropout_prob: 0.1
   weight_decay: 0.05

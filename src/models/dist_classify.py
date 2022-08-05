@@ -1,15 +1,11 @@
-from argparse import ArgumentParser
 from typing import List, Optional, Union
 
 import nni
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torchmetrics
-from numpy import average
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-from sklearn import multiclass
 from sklearn.metrics import confusion_matrix
 from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
 

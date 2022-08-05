@@ -2,6 +2,10 @@
 # Schedule execution of many runs
 # Run from root folder with: bash scripts/schedule.sh
 
-python src/train.py -m local=only_img_test seed=1,2,3,4,5
-
-python src/train.py -m experiment=street_classify_exp model.learning_rate=0.0001 datamodule.eda_prob=1 model.dropout_prob=0.1 datamodule.only_img=true model.num_warmup_steps=0 datamodule.batch_size_per_gpu=8 +trainer.log_every_n_steps=1 trainer.max_epochs=8 trainer.min_epochs=8 seed=1,2,3,4,5
+python src/train.py -m experiment=street_classify_exp task_name=street_eda_effectiveness ++logger.wandb.project=street_eda_effectiveness datamodule.eda_prob=0,1 seed=1,2,3
+sleep 60
+python src/train.py -m experiment=district_classify_exp task_name=district_eda_effectiveness ++logger.wandb.project=district_eda_effectiveness datamodule.eda_prob=0,1 seed=1,2,3
+sleep 60
+python src/train.py -m experiment=street_classify_exp task_name=street_mlm_effectiveness ++logger.wandb.project=street_eda_effectiveness bert_name_or_path=hfl/chinese-roberta-wwm-ext,/data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm,/data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs seed=1,2,3
+sleep 60
+python src/train.py -m experiment=district_classify_exp task_name=district_mlm_effectiveness ++logger.wandb.project=district_eda_effectiveness bert_name_or_path=hfl/chinese-roberta-wwm-ext,/data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm,/data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs seed=1,2,3
