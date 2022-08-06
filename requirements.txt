@@ -22,10 +22,6 @@ gradio == 3.1.1
 # deeplearning-all-in-one/src/train.py: 4
 # deeplearning-all-in-one/src/utils/rich_utils.py: 101
 # deeplearning-all-in-one/src/utils/utils.py: 7
-# deeplearning-all-in-one/tests/conftest.py: 3,4
-# deeplearning-all-in-one/tests/test_configs.py: 1,2
-# deeplearning-all-in-one/tests/test_eval.py: 4
-# deeplearning-all-in-one/tests/test_train.py: 4
 hydra_core == 1.2.0
 
 # deeplearning-all-in-one/src/utils/run_chinese_ref.py: 6
@@ -56,14 +52,7 @@ numpy == 1.21.5
 # deeplearning-all-in-one/src/train.py: 6
 # deeplearning-all-in-one/src/utils/rich_utils.py: 8
 # deeplearning-all-in-one/src/utils/utils.py: 8
-# deeplearning-all-in-one/tests/conftest.py: 5
-# deeplearning-all-in-one/tests/test_configs.py: 3
-# deeplearning-all-in-one/tests/test_eval.py: 5
-# deeplearning-all-in-one/tests/test_train.py: 5
 omegaconf == 2.2.2
-
-# deeplearning-all-in-one/tests/helpers/run_if.py: 11
-packaging == 21.3
 
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 25
 # deeplearning-all-in-one/src/datamodules/components/mix_modal_dataset.py: 4
@@ -76,17 +65,7 @@ pandas == 1.4.2
 # deeplearning-all-in-one/src/eval.py: 2
 # deeplearning-all-in-one/src/models/mnist_module.py: 125
 # deeplearning-all-in-one/src/train.py: 5
-# deeplearning-all-in-one/tests/conftest.py: 1
 pyrootutils == 1.0.4
-
-# deeplearning-all-in-one/tests/conftest.py: 2
-# deeplearning-all-in-one/tests/helpers/run_if.py: 9
-# deeplearning-all-in-one/tests/helpers/run_sh_command.py: 3
-# deeplearning-all-in-one/tests/test_eval.py: 3
-# deeplearning-all-in-one/tests/test_mnist_datamodule.py: 3
-# deeplearning-all-in-one/tests/test_sweeps.py: 1
-# deeplearning-all-in-one/tests/test_train.py: 3
-pytest == 7.1.2
 
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 6
 # deeplearning-all-in-one/src/datamodules/mix_modal_data.py: 4
@@ -99,7 +78,6 @@ pytest == 7.1.2
 # deeplearning-all-in-one/src/utils/pylogger.py: 3
 # deeplearning-all-in-one/src/utils/rich_utils.py: 9
 # deeplearning-all-in-one/src/utils/utils.py: 9,10,11
-# deeplearning-all-in-one/tests/helpers/package_available.py: 4
 pytorch_lightning == 1.7.0
 
 # deeplearning-all-in-one/src/models/components/multi_modal_model.py: 199
@@ -113,12 +91,7 @@ rich == 12.5.1
 scikit_learn == 1.0.2
 
 # deeplearning-all-in-one/setup.py: 3
-# deeplearning-all-in-one/tests/helpers/package_available.py: 3
-# deeplearning-all-in-one/tests/helpers/run_if.py: 12
 setuptools == 61.2.0
-
-# deeplearning-all-in-one/tests/helpers/run_sh_command.py: 8
-sh == 1.14.3
 
 # deeplearning-all-in-one/notebooks/cls_demo.ipynb: 11
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 18
@@ -143,8 +116,6 @@ src == 0.0.7
 # deeplearning-all-in-one/src/utils/ner_seq.py: 7
 # deeplearning-all-in-one/src/utils/r_drop.py: 1
 # deeplearning-all-in-one/src/utils/sim_clr_data_aug.py: 2,3
-# deeplearning-all-in-one/tests/helpers/run_if.py: 10
-# deeplearning-all-in-one/tests/test_mnist_datamodule.py: 4
 torch == 1.12.0
 
 # deeplearning-all-in-one/src/models/clip_classify.py: 7
