@@ -1,6 +1,5 @@
 from typing import List, Optional, Union
 
-import nni
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn

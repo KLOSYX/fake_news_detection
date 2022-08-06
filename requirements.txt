@@ -34,10 +34,6 @@ matplotlib == 3.3.0
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 5
 mplfonts == 0.0.7
 
-# deeplearning-all-in-one/src/models/clip_classify.py: 3
-# deeplearning-all-in-one/src/models/dist_classify.py: 3
-nni == 2.7
-
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 38
 # deeplearning-all-in-one/src/datamodules/components/mix_modal_dataset.py: 3
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 6
@@ -92,10 +88,6 @@ scikit_learn == 1.0.2
 
 # deeplearning-all-in-one/setup.py: 3
 setuptools == 61.2.0
-
-# deeplearning-all-in-one/notebooks/cls_demo.ipynb: 11
-# deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 18
-src == 0.0.7
 
 # deeplearning-all-in-one/notebooks/cls_demo.ipynb: 2
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 3
