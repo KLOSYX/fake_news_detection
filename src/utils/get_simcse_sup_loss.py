@@ -2,10 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 def get_simcse_sup_loss(y_pred):
-    """有监督的损失函数
+    """有监督的损失函数.
+
     y_pred (tensor): bert的输出, [batch_size * 3, 768]
-    
     """
     # 得到y_pred对应的label, 每第三句没有label, 跳过, label= [1, 0, 4, 3, ...]
     y_true = torch.arange(y_pred.shape[0], device=y_pred.device)

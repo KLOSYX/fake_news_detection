@@ -4,9 +4,9 @@ from typing import List
 
 # from ltp import LTP
 import jieba
-from transformers.models.bert.tokenization_bert import BertTokenizer
-from tqdm import tqdm
 import pandas as pd
+from tqdm import tqdm
+from transformers.models.bert.tokenization_bert import BertTokenizer
 
 
 def _is_chinese_char(cp):
@@ -21,14 +21,14 @@ def _is_chinese_char(cp):
     # like the all of the other languages.
     if (
         (cp >= 0x4E00 and cp <= 0x9FFF)
-        or (cp >= 0x3400 and cp <= 0x4DBF)  #
-        or (cp >= 0x20000 and cp <= 0x2A6DF)  #
-        or (cp >= 0x2A700 and cp <= 0x2B73F)  #
-        or (cp >= 0x2B740 and cp <= 0x2B81F)  #
-        or (cp >= 0x2B820 and cp <= 0x2CEAF)  #
+        or (cp >= 0x3400 and cp <= 0x4DBF)
+        or (cp >= 0x20000 and cp <= 0x2A6DF)
+        or (cp >= 0x2A700 and cp <= 0x2B73F)
+        or (cp >= 0x2B740 and cp <= 0x2B81F)
+        or (cp >= 0x2B820 and cp <= 0x2CEAF)
         or (cp >= 0xF900 and cp <= 0xFAFF)
-        or (cp >= 0x2F800 and cp <= 0x2FA1F)  #
-    ):  #
+        or (cp >= 0x2F800 and cp <= 0x2FA1F)
+    ):
         return True
 
     return False
@@ -57,15 +57,15 @@ def get_chinese_word(tokens: List[str]):
 def add_sub_symbol(bert_tokens: List[str], chinese_word_set: set()):
     if not chinese_word_set:
         return bert_tokens
-    max_word_len = max([len(w) for w in chinese_word_set])
+    max_word_len = max(len(w) for w in chinese_word_set)
 
     bert_word = bert_tokens
     start, end = 0, len(bert_word)
     while start < end:
         single_word = True
         if is_chinese(bert_word[start]):
-            l = min(end - start, max_word_len)
-            for i in range(l, 1, -1):
+            length = min(end - start, max_word_len)
+            for i in range(length, 1, -1):
                 whole_word = "".join(bert_word[start : start + i])
                 if whole_word in chinese_word_set:
                     for j in range(start + 1, start + i):
@@ -82,19 +82,25 @@ def prepare_ref(lines: List[str], bert_tokenizer: BertTokenizer):
     ltp_res = []
 
     # for i in tqdm(range(0, len(lines), 100), desc='ltp tokenizing...'):
-    res = [list(jieba.cut(line)) for line in tqdm(lines, desc='jieba cutting...', total=len(lines))]
+    res = [
+        list(jieba.cut(line)) for line in tqdm(lines, desc="jieba cutting...", total=len(lines))
+    ]
     res = [get_chinese_word(r) for r in res]
     ltp_res.extend(res)
     assert len(ltp_res) == len(lines)
 
     bert_res = []
-    for i in tqdm(range(0, len(lines), 100), desc='bert tokenizing...'):
-        res = bert_tokenizer(lines[i : i + 100], add_special_tokens=True, truncation=True, max_length=512)
+    for i in tqdm(range(0, len(lines), 100), desc="bert tokenizing..."):
+        res = bert_tokenizer(
+            lines[i : i + 100], add_special_tokens=True, truncation=True, max_length=512
+        )
         bert_res.extend(res["input_ids"])
     assert len(bert_res) == len(lines)
 
     ref_ids = []
-    for input_ids, chinese_word in tqdm(zip(bert_res, ltp_res), desc='merging data...', total=len(bert_res)):
+    for input_ids, chinese_word in tqdm(
+        zip(bert_res, ltp_res), desc="merging data...", total=len(bert_res)
+    ):
 
         input_tokens = []
         for id in input_ids:
@@ -127,10 +133,10 @@ def main(args):
     bert_tokenizer = BertTokenizer.from_pretrained(args.bert)
 
     ref_ids = prepare_ref(data.text.to_list(), bert_tokenizer)
-    
-    data['cn_ref'] = ref_ids
-    data.to_json(args.save_path, orient='records', lines=True, force_ascii=False)
-    
+
+    data["cn_ref"] = ref_ids
+    data.to_json(args.save_path, orient="records", lines=True, force_ascii=False)
+
     # with open(args.save_path, "w", encoding="utf-8") as f:
     #     data = [json.dumps(ref) + "\n" for ref in ref_ids]
     #     f.writelines(data)
@@ -147,8 +153,18 @@ if __name__ == "__main__":
     # parser.add_argument(
     #     "--ltp", type=str, default="./resources/ltp", help="resources for LTP tokenizer, usually a path"
     # )
-    parser.add_argument("--bert", type=str, default="hfl/chinese-roberta-wwm-ext", help="resources for Bert tokenizer")
-    parser.add_argument("--save_path", type=str, default="/data/clean_raw_text/all_data_cleaned_with_cn_ref.json", help="path to save res")
+    parser.add_argument(
+        "--bert",
+        type=str,
+        default="hfl/chinese-roberta-wwm-ext",
+        help="resources for Bert tokenizer",
+    )
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        default="/data/clean_raw_text/all_data_cleaned_with_cn_ref.json",
+        help="path to save res",
+    )
 
     args = parser.parse_args()
     main(args)
