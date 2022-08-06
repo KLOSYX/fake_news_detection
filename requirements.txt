@@ -22,7 +22,9 @@ gradio == 3.1.1
 # deeplearning-all-in-one/src/train.py: 4
 # deeplearning-all-in-one/src/utils/rich_utils.py: 101
 # deeplearning-all-in-one/src/utils/utils.py: 7
-hydra_core == 1.2.0
+hydra-core == 1.2.0
+hydra-colorlog == 1.2.0
+hydra-optuna-sweeper == 1.2.0
 
 # deeplearning-all-in-one/src/utils/run_chinese_ref.py: 6
 jieba == 0.42.1
@@ -137,3 +139,8 @@ transformers == 4.20.1
 
 # deeplearning-all-in-one/src/utils/utils.py: 202
 wandb == 0.12.21
+
+pyrootutils     # standardizing the project root setup
+pre-commit      # hooks for applying linters on commit
+pytest          # tests
+sh              # for running bash commands in some tests
