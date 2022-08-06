@@ -119,12 +119,6 @@ class DistClassify(pl.LightningModule):
                 fig = plot_confusion_matrix(cm, target_names=text_labels, normalize=False)
                 self.logger.log_image(key="confusion_matrix", images=[fig])
 
-    def on_validation_epoch_end(self) -> None:
-        if self.global_step > 1 and self.hparams.use_nni:
-            metric = self.val_acc.compute()["val/accuracy_top_1"].item()
-            if self.global_rank == 0:
-                nni.report_intermediate_result(metric)
-
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         tokens, labels = batch
         logits = self(tokens)

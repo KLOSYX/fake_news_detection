@@ -1,19 +1,10 @@
 import random
-from argparse import ArgumentParser
-from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
-import pandas as pd
 import pytorch_lightning as pl
 import torch
-from PIL import Image
 from torch.utils.data import DataLoader, random_split
-from torchvision import transforms
-from transformers import (
-    AutoFeatureExtractor,
-    AutoTokenizer,
-    DataCollatorForWholeWordMask,
-)
+from transformers import AutoFeatureExtractor, AutoTokenizer
 
 from datamodules.components.mix_modal_dataset import MixModalDataset
 
