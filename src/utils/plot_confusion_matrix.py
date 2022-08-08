@@ -2,7 +2,8 @@ import itertools
 from typing import List
 
 import matplotlib.pyplot as plt
-import mplfonts
+
+# import mplfonts
 import numpy as np
 
 
@@ -20,7 +21,7 @@ def plot_confusion_matrix(
     if cmap is None:
         cmap = plt.get_cmap("Blues")
 
-    mplfonts.use_font("Noto Sans CJK SC")
+    # mplfonts.use_font("Noto Sans CJK SC")
     fig = plt.figure(figsize=(cm.shape[0], cm.shape[0]), dpi=120)
     plt.imshow(cm, interpolation="nearest", cmap=cmap)
     plt.title(title)
