@@ -110,7 +110,7 @@ setuptools == 63.4.2
 # deeplearning-all-in-one/src/utils/ner_seq.py: 7
 # deeplearning-all-in-one/src/utils/r_drop.py: 1
 # deeplearning-all-in-one/src/utils/sim_clr_data_aug.py: 2,3
-torch == 1.12.0
+torch == 1.12.1
 
 # deeplearning-all-in-one/src/models/clip_classify.py: 7
 # deeplearning-all-in-one/src/models/dist_classify.py: 7
