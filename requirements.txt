@@ -79,7 +79,7 @@ pyrootutils == 1.0.4
 pytorch_lightning == 1.7.0
 
 # deeplearning-all-in-one/src/models/components/multi_modal_model.py: 199
-requests == 2.27.1
+requests == 2.28.1
 
 # deeplearning-all-in-one/src/utils/rich_utils.py: 4,5,6,10
 rich == 12.5.1
