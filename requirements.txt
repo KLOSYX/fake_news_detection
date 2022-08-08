@@ -86,7 +86,7 @@ rich == 12.5.1
 
 # deeplearning-all-in-one/src/models/clip_classify.py: 9
 # deeplearning-all-in-one/src/models/dist_classify.py: 9
-scikit_learn == 1.0.2
+scikit_learn == 1.1.2
 
 # deeplearning-all-in-one/setup.py: 3
 setuptools == 61.2.0
