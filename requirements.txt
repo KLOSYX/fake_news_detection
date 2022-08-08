@@ -2,7 +2,7 @@
 
 # deeplearning-all-in-one/src/datamodules/components/mix_modal_dataset.py: 6
 # deeplearning-all-in-one/src/models/components/multi_modal_model.py: 200
-Pillow == 9.0.1
+Pillow == 9.2.0
 
 # deeplearning-all-in-one/notebooks/cls_demo.ipynb: 3
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 1
@@ -30,7 +30,7 @@ hydra-optuna-sweeper == 1.2.0
 jieba == 0.42.1
 
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 4
-matplotlib == 3.3.0
+matplotlib == 3.5.2
 
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 7
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 5
