@@ -12,7 +12,7 @@ PyYAML == 6.0
 einops == 0.4.1
 
 # deeplearning-all-in-one/notebooks/cls_demo.ipynb: 6
-gradio == 3.1.1
+gradio == 3.1.4
 
 # deeplearning-all-in-one/src/datamodules/mnist_datamodule.py: 131
 # deeplearning-all-in-one/src/eval.py: 1
@@ -30,7 +30,7 @@ hydra-optuna-sweeper == 1.2.0
 jieba == 0.42.1
 
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 4
-matplotlib == 3.3.0
+matplotlib == 3.5.2
 
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 7
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 5
