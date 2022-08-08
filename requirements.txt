@@ -135,7 +135,7 @@ tqdm == 4.64.0
 # deeplearning-all-in-one/src/models/components/multi_modal_model.py: 8
 # deeplearning-all-in-one/src/models/dist_classify.py: 10
 # deeplearning-all-in-one/src/utils/run_chinese_ref.py: 9
-transformers == 4.20.1
+transformers == 4.21.1
 
 # deeplearning-all-in-one/src/utils/utils.py: 202
 wandb == 0.13.1
