@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import Any, List, Optional, Tuple
 
 import pandas as pd
 import pytorch_lightning as pl
@@ -30,10 +30,10 @@ class WeiboDataset:
         )
         print("data size:", len(self.data))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[Any]:
         text = self.data.iloc[idx]["title"]
         img_name = self.data.iloc[idx]["imgs"][0]
         img_path = self.img_path / img_name
@@ -43,7 +43,7 @@ class WeiboDataset:
 
 
 class Collector:
-    def __init__(self, tokenizer: str, processor: str, max_length: int = 200) -> None:
+    def __init__(self, tokenizer: str, processor: Optional[str], max_length: int = 200) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained(tokenizer, cache_dir="/data/.cache")
         self.processor = (
             AutoFeatureExtractor.from_pretrained(processor, cache_dir="/data/.cache")
@@ -52,7 +52,7 @@ class Collector:
         )
         self.max_length = max_length
 
-    def __call__(self, data: List):
+    def __call__(self, data: List) -> Tuple:
         texts, imgs, labels = zip(*data)
         text_encodeds = self.tokenizer(
             list(texts),
@@ -76,7 +76,7 @@ class MultiModalData(pl.LightningDataModule):
         train_path: str,
         test_path: str,
         tokenizer_name: str = "bert-base-chinese",
-        processor_name: str = None,
+        processor_name: Optional[str] = None,
         dataset_name: str = "weibo",
         max_length: int = 200,
         val_set_ratio: int = 0.1,
@@ -95,7 +95,7 @@ class MultiModalData(pl.LightningDataModule):
             tokenizer=tokenizer_name, processor=processor_name, max_length=max_length
         )
 
-    def setup(self, stage: str = None):
+    def setup(self, stage: str = None) -> None:
         if stage == "fit" or stage is None:
             dataset = (
                 WeiboDataset(self.img_path, self.train_path)
