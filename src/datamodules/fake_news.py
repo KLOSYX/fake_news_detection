@@ -12,11 +12,11 @@ from transformers import AutoFeatureExtractor, AutoTokenizer
 
 
 class WeiboDataset:
-    def __init__(self, img_path, data_path) -> None:
+    def __init__(self, img_path: str, data_path: str) -> None:
         assert isinstance(img_path, str) and isinstance(data_path, str), "path must be a string"
         self.data = pd.read_json(data_path, lines=True)
         self.img_path = Path(img_path)
-        #
+        # apply image transforms
         self.transforms = transforms.Compose(
             [
                 transforms.RandomHorizontalFlip(p=0.2),
@@ -72,16 +72,16 @@ class Collector:
 class MultiModalData(pl.LightningDataModule):
     def __init__(
         self,
-        img_path,
-        train_path,
-        test_path,
-        tokenizer_name="bert-base-chinese",
-        processor_name=None,
-        dataset_name="weibo",
-        max_length=200,
+        img_path: str,
+        train_path: str,
+        test_path: str,
+        tokenizer_name: str = "bert-base-chinese",
+        processor_name: str = None,
+        dataset_name: str = "weibo",
+        max_length: int = 200,
         val_set_ratio: int = 0.1,
-        batch_size=32,
-        num_workers=0,
+        batch_size: int = 32,
+        num_workers: int = 0,
     ) -> None:
         super().__init__()
         self.img_path = img_path
