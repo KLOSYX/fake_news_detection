@@ -1,0 +1,56 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: fake_news_data.yaml
+  - override /model: spotfake.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: deepspeed.yaml
+  - override /logger: wandb.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["fakenews", "multimodal", "classify"]
+monitor: val/accuracy
+bert_name_or_path: bert-base-chinese
+
+test: True
+
+seed: 42
+
+trainer:
+  min_epochs: 0
+  max_epochs: 30
+  gradient_clip_val: 0
+  devices: 1,2,3,4
+  precision: 16
+  log_every_n_steps: 10
+
+logger:
+  wandb:
+    project: fakenews_weibo_spotfake
+    tags: ${tags}
+
+callbacks:
+  model_checkpoint:
+    monitor: ${monitor}
+    mode: max
+  early_stopping:
+    monitor: ${monitor}
+    mode: max
+    patience: 3
+
+model:
+  lr: 0.0001
+  bert_name: ${bert_name_or_path}
+  dropout_prob: 0.4
+  weight_decay: 0.05
+  num_warmup_steps: 400
+
+datamodule:
+  tokenizer_name: ${bert_name_or_path}
+  num_workers: 32
+  batch_size: 64
