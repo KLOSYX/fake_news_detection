@@ -80,7 +80,7 @@ class SpotFake(FakeNewsBase):
         return logits
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
+        optimizer = torch.optim.AdamW(
             self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay
         )
         scheduler = get_constant_schedule_with_warmup(

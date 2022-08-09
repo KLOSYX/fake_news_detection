@@ -44,8 +44,8 @@ class FakeNewsBase(pl.LightningModule):
         logits = self(text_encodeds, img_encodeds)  # [N, 2]
         loss = self.criterion(logits, labels)
         preds = torch.argmax(logits, dim=1)
-        self.log_dict({"train/loss": loss})
-        self.log_dict(self.train_metrics(preds, labels))
+        self.log_dict({"train/loss": loss}, sync_dist=True)
+        self.log_dict(self.train_metrics(preds, labels), sync_dist=True)
         return loss
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
@@ -56,24 +56,23 @@ class FakeNewsBase(pl.LightningModule):
         logits = self(text_encodeds, img_encodeds)  # [N, 2]
         loss = self.criterion(logits, labels)
         preds = torch.argmax(logits, dim=1)
-        self.log_dict({"val/loss": loss})
-        self.log_dict(self.val_metrics(preds, labels))
+        self.log_dict({"val/loss": loss}, sync_dist=True)
         return (preds, labels)
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.val_metrics.reset()
         preds, labels = zip(*outputs)
-        self.log_dict(self.val_metrics(torch.cat(preds), torch.cat(labels)))
+        self.log_dict(self.val_metrics(torch.cat(preds), torch.cat(labels)), sync_dist=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         text_encodeds, img_encodeds, labels = batch
         logits = self(text_encodeds, img_encodeds)  # [N, 2]
         loss = self.criterion(logits, labels)
         preds = torch.argmax(logits, dim=1)  # [N]
-        self.log_dict({"test/loss": loss}, on_step=False, on_epoch=True)
+        self.log_dict({"test/loss": loss}, sync_dist=True)
         return (preds, labels)
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.test_metrics.reset()
         preds, labels = zip(*outputs)
-        self.log_dict(self.test_metrics(torch.cat(preds), torch.cat(labels)))
+        self.log_dict(self.test_metrics(torch.cat(preds), torch.cat(labels)), sync_dist=True)
