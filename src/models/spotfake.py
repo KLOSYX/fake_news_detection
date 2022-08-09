@@ -39,7 +39,7 @@ class SpotFake(FakeNewsBase):
         self.criterion = nn.CrossEntropyLoss()
 
         # modify the last fc layer of vgg
-        new_classifier = torch.nn.Sequential(*list(self.vgg_model.children())[-1][:6])
+        new_classifier = nn.Sequential(*list(self.vgg_model.children())[-1][:6])
         self.vgg_model.classifier = new_classifier
 
         # freeze vgg

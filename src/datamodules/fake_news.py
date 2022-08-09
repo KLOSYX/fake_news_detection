@@ -19,6 +19,9 @@ class WeiboDataset:
         #
         self.transforms = transforms.Compose(
             [
+                transforms.RandomHorizontalFlip(p=0.2),
+                transforms.RandomPerspective(p=0.2),
+                transforms.RandomVerticalFlip(p=0.2),
                 transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),

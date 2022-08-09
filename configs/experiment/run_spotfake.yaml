@@ -41,7 +41,7 @@ callbacks:
   early_stopping:
     monitor: ${monitor}
     mode: max
-    patience: 3
+    patience: 5
 
 model:
   lr: 0.0001
