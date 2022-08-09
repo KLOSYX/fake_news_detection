@@ -73,6 +73,7 @@ class SpotFake(FakeNewsBase):
         # multimodal repr
         x = torch.cat([x1, x2], dim=1)  # (N, 64)
         x = self.fc(x)
+        x = self.dropout(x)
         x = self.act(x)
         logits = self.classifier(x)  # (N, 2)
 

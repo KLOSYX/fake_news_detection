@@ -26,7 +26,7 @@ trainer:
   max_epochs: 30
   gradient_clip_val: 0
   devices: 1,2,3,4
-  precision: 16
+  precision: 32
   log_every_n_steps: 10
 
 logger:
@@ -48,9 +48,10 @@ model:
   bert_name: ${bert_name_or_path}
   dropout_prob: 0.4
   weight_decay: 0.05
-  num_warmup_steps: 400
+  num_warmup_steps: 0
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}
   num_workers: 32
   batch_size: 64
+  val_set_ratio: 0.2
