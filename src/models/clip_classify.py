@@ -16,6 +16,7 @@ from utils.plot_confusion_matrix import plot_confusion_matrix
 class ClipClassify(pl.LightningModule):
     def __init__(
         self,
+        modal="multi",
         clip_name="openai/clip-vit-base-patch32",
         bert_name="IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese",
         num_classes=62,
@@ -32,12 +33,16 @@ class ClipClassify(pl.LightningModule):
 
         # model
         self.model = ClipBase(clip_name, bert_name)
-        self.projection = nn.Linear(self.model.clip.config.projection_dim * 2, 256)
+        self.model.freeze_clip()
+        self.model.freeze_bert()
+        if modal == "multi":
+            self.fc1 = nn.Linear(self.model.clip.config.projection_dim * 2, 2048)
+        else:
+            self.fc1 = nn.Linear(self.model.clip.config.projection_dim, 2048)
+        self.fc2 = nn.Linear(2048, 256)
         self.dropout = nn.Dropout(dropout_prob)
         self.classifier = nn.Linear(256, num_classes)
         self.act = nn.GELU()
-
-        self.model.freeze_clip()
 
         # loss function
         self.criterion = (
@@ -73,12 +78,19 @@ class ClipClassify(pl.LightningModule):
 
     def forward(self, img_encoded, text_encoded):
         img_features, text_features = self.model(text_encoded, img_encoded)
-        x = torch.cat([img_features, text_features], dim=1)  # [N, hidden_size * 2]
+        if self.hparams.modal == "multi":
+            x = torch.cat([img_features, text_features], dim=1)  # [N, hidden_size * 2]
+        elif self.hparams.modal == "text":
+            x = text_features  # [N, hidden_size]
+        else:
+            x = img_features  # [N, hidden_size]
+        x = self.act(x)
+        x = self.fc1(x)
         x = self.dropout(x)
         x = self.act(x)
-        x = self.projection(x)
+        x = self.fc2(x)  # [N, 256]
         x = self.dropout(x)
-        x = self.act(x)  # [N, 256]
+        x = self.act(x)
         logits = self.classifier(x)  # [N, num_classes]
         return logits
 

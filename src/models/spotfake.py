@@ -7,7 +7,7 @@ from models.components.fake_news_base import FakeNewsBase
 
 
 class SpotFake(FakeNewsBase):
-    """implememnt of SpotFake: http://arxiv.org/abs/2108.10509."""
+    """implement of SpotFake: http://arxiv.org/abs/2108.10509."""
 
     def __init__(
         self,

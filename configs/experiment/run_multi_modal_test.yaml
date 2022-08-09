@@ -18,10 +18,10 @@ test: true
 seed: 42
 
 trainer:
-  min_epochs: 12
-  max_epochs: 12
+  min_epochs: 10
+  max_epochs: 20
   gradient_clip_val: 0
-  gpus: 1,2,3,4
+  devices: 1,2,3,4
   log_every_n_steps: 1
 
 logger:
@@ -36,12 +36,13 @@ callbacks:
   early_stopping:
     monitor: ${monitor}
     mode: max
-    patience: 2
+    patience: 3
 
 model:
-  learning_rate: 0.0001
+  modal: text
+  learning_rate: 0.001
   weight_decay: 0.3
-  dropout_prob: 0.2
+  dropout_prob: 0.4
   num_warmup_steps: 0
 
 datamodule:

@@ -1,5 +1,6 @@
 _target_: src.models.clip_classify.ClipClassify
 
+modal: multi
 draw_confusion_matrix: False
 num_classes: 58
 clip_name: openai/clip-vit-base-patch32
