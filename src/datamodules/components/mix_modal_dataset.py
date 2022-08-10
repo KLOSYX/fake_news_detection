@@ -17,10 +17,22 @@ class GaussianBlur:
         radias = kernel_size // 2
         kernel_size = radias * 2 + 1
         self.blur_h = nn.Conv2d(
-            3, 3, kernel_size=(kernel_size, 1), stride=1, padding=0, bias=False, groups=3
+            3,
+            3,
+            kernel_size=(kernel_size, 1),
+            stride=1,
+            padding=0,
+            bias=False,
+            groups=3,
         )
         self.blur_v = nn.Conv2d(
-            3, 3, kernel_size=(1, kernel_size), stride=1, padding=0, bias=False, groups=3
+            3,
+            3,
+            kernel_size=(1, kernel_size),
+            stride=1,
+            padding=0,
+            bias=False,
+            groups=3,
         )
         self.k = kernel_size
         self.r = radias
@@ -72,7 +84,20 @@ class MixModalDataset:
             self.data = self.data[self.data.img.apply(lambda x: x is not None and len(x) > 0)]
         self.stage = stage
         if multimodal:
-            self.transformer = self.get_simclr_pipeline_transform(image_size)
+            self.transformer = transforms.Compose(
+                [
+                    transforms.RandomHorizontalFlip(p=0.2),
+                    transforms.RandomPerspective(p=0.2),
+                    transforms.RandomVerticalFlip(p=0.2),
+                    transforms.Resize(256),  # 缩放
+                    transforms.RandomCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
+                    ),  # 转换成Tensor
+                ]
+            )
+            # self.transformer = self.get_simclr_pipeline_transform(image_size)
             # self.transformer = RandAugment(2, 9)
         self.multimodal = multimodal
         self.mlm = mlm
