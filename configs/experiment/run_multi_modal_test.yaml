@@ -41,8 +41,8 @@ callbacks:
 model:
   modal: text
   learning_rate: 0.001
-  weight_decay: 0.3
-  dropout_prob: 0.4
+  weight_decay: 0.05
+  dropout_prob: 0.5
   num_warmup_steps: 40
 
 datamodule:

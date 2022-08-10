@@ -63,6 +63,7 @@ class ClipClassify(pl.LightningModule):
         self.test_acc = self.get_top_k_metric_collection(
             "Accuracy", prefix="test", num_classes=num_classes, multiclass=True
         )
+        self.val_acc_best = torchmetrics.MaxMetric()
 
     def get_top_k_metric_collection(
         self, metric="Accuracy", prefix="train", num_classes=None, top_k=3, **kwargs
@@ -124,6 +125,9 @@ class ClipClassify(pl.LightningModule):
         return (logits, labels)
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        acc = self.val_acc.compute()["val/accuracy_top_1"]
+        self.log("val/acc_best", self.val_acc_best(acc), sync_dist=True, on_epoch=True)
+        self.val_acc.reset()
         if self.hparams.draw_confusion_matrix:
             logits, labels = zip(*outputs)
             file = (
