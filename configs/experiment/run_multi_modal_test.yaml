@@ -18,15 +18,15 @@ test: true
 seed: 42
 
 trainer:
-  min_epochs: 10
-  max_epochs: 20
+  min_epochs: 15
+  max_epochs: 30
   gradient_clip_val: 0
   devices: 1,2,3,4
   log_every_n_steps: 1
 
 logger:
   wandb:
-    project: dist_classify_debug
+    project: multi_modal_test
     tags: ${tags}
 
 callbacks:
@@ -36,14 +36,14 @@ callbacks:
   early_stopping:
     monitor: ${monitor}
     mode: max
-    patience: 3
+    patience: 5
 
 model:
   modal: text
   learning_rate: 0.001
   weight_decay: 0.3
   dropout_prob: 0.4
-  num_warmup_steps: 0
+  num_warmup_steps: 40
 
 datamodule:
   batch_size_per_gpu: 8
@@ -52,3 +52,4 @@ datamodule:
   eda_prob: 1
   multimodal: true
   only_img: true
+  val_ratio: 0.2

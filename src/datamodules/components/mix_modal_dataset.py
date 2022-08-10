@@ -84,20 +84,14 @@ class MixModalDataset:
             self.data = self.data[self.data.img.apply(lambda x: x is not None and len(x) > 0)]
         self.stage = stage
         if multimodal:
-            self.transformer = transforms.Compose(
-                [
-                    transforms.RandomHorizontalFlip(p=0.2),
-                    transforms.RandomPerspective(p=0.2),
-                    transforms.RandomVerticalFlip(p=0.2),
-                    transforms.Resize(256),  # 缩放
-                    transforms.RandomCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(
-                        (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-                    ),  # 转换成Tensor
-                ]
-            )
-            # self.transformer = self.get_simclr_pipeline_transform(image_size)
+            # self.transformer = transforms.Compose(
+            #     [
+            #         transforms.RandomHorizontalFlip(p=0.2),
+            #         transforms.RandomPerspective(p=0.2),
+            #         transforms.RandomVerticalFlip(p=0.2),
+            #     ]
+            # )
+            self.transformer = self.get_simclr_pipeline_transform(image_size)
             # self.transformer = RandAugment(2, 9)
         self.multimodal = multimodal
         self.mlm = mlm
