@@ -126,7 +126,8 @@ class ClipClassify(pl.LightningModule):
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         acc = self.val_acc.compute()["val/accuracy_top_1"]
-        self.log("val/acc_best", self.val_acc_best(acc), sync_dist=True, on_epoch=True)
+        self.val_acc_best.update(acc)
+        self.log("val/acc_best", self.val_acc_best.compute(), sync_dist=True, on_epoch=True)
         self.val_acc.reset()
         if self.hparams.draw_confusion_matrix:
             logits, labels = zip(*outputs)

@@ -21,7 +21,7 @@ trainer:
   min_epochs: 15
   max_epochs: 30
   gradient_clip_val: 0
-  devices: 1,2,3,4
+  devices: 4,5
   log_every_n_steps: 1
 
 logger:
@@ -40,9 +40,9 @@ callbacks:
 
 model:
   modal: text
-  learning_rate: 0.001
-  weight_decay: 0.05
-  dropout_prob: 0.5
+  learning_rate: 0.005
+  weight_decay: 0.1
+  dropout_prob: 0.3
   num_warmup_steps: 40
 
 datamodule:
