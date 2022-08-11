@@ -1,5 +1,5 @@
 import torch
-from einops import rearrange
+from einops import rearrange, reduce
 from torch import nn
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
 from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
@@ -71,13 +71,19 @@ class SpotFake(FakeNewsBase):
         vgg_out = self.vgg_model(img_encodeds)
         if self.hparams.pooler == "pooler_output":
             bert_out = self.bert(**text_encodeds).pooler_output
-        else:
-            sequence_out = self.bert(**text_encodeds).last_hidden_state[:, 1:, :]
-            sequence_out = rearrange(
-                sequence_out, "n l d -> n d l"
-            )  # [N, hidden_dim, sequence_length]
-            bert_out = self.pool(sequence_out)  # (N, hidden_dim, 1)
-            bert_out = rearrange(bert_out, "n d 1 -> n d")
+        elif self.hparams.pooler == "avg_pool":
+            bert_out = []
+            attention_mask: torch.Tensor = text_encodeds.attention_mask  # [N, L]
+            sequence_out: torch.Tensor = self.bert(**text_encodeds).last_hidden_state  # [N, L, d]
+            input_mask_expanded: torch.Tensor = (
+                attention_mask.unsqueeze(-1).expand(sequence_out.size()).float()
+            )
+            t = sequence_out * input_mask_expanded  # [N, L, d]
+            sum_embed = reduce(t, "N L d -> N d", "sum")
+            sum_mask = reduce(input_mask_expanded, "N L d -> N d", "sum")
+            sum_mask = torch.clamp(sum_mask, min=1e-9)  # make sure not divided by zero
+            bert_out.append(sum_embed / sum_mask)
+            bert_out = torch.cat(bert_out, dim=1)
 
         # visual encoding
         x1 = self.img_fc1(vgg_out)
