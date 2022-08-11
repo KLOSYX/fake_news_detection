@@ -1,4 +1,5 @@
 import torch
+from einops import rearrange
 from torch import nn
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
 from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
@@ -15,8 +16,14 @@ class SpotFake(FakeNewsBase):
         weight_decay=0.05,
         num_warmup_steps=400,
         dropout_prob=0.0,
-        bert_name="bert-base-chinese",
+        bert_name: str = "bert-base-chinese",
+        pooler: str = "cls_token",
     ) -> None:
+        assert pooler in [
+            "cls_token",
+            "avg_pool",
+        ], "pooler must be one of [cls_token, avg_pool]"
+
         super().__init__()
         self.save_hyperparameters()
         bert_config = BertConfig.from_pretrained(bert_name, cache_dir="/data/.cache")
@@ -37,6 +44,10 @@ class SpotFake(FakeNewsBase):
         self.fc = nn.Linear(64, 35)
         self.classifier = nn.Linear(35, 2)
 
+        # pooler
+        if pooler == "avg_pool":
+            self.pool = nn.AdaptiveAvgPool1d(1)
+
         # loss function
         self.criterion = nn.CrossEntropyLoss()
 
@@ -50,14 +61,23 @@ class SpotFake(FakeNewsBase):
         # freeze bert
         self._freeze(self.bert)
 
-    def _freeze(self, module):
+    @staticmethod
+    def _freeze(module):
         for n, p in module.named_parameters():
             p.requires_grad = False
             print("freeze", n)
 
     def forward(self, text_encodeds, img_encodeds):
         vgg_out = self.vgg_model(img_encodeds)
-        bert_out = self.bert(**text_encodeds).pooler_output
+        if self.hparams.pooler == "pooler_output":
+            bert_out = self.bert(**text_encodeds).pooler_output
+        else:
+            sequence_out = self.bert(**text_encodeds).last_hidden_state[:, 1:, :]
+            sequence_out = rearrange(
+                sequence_out, "n l d -> n d l"
+            )  # [N, hidden_dim, sequence_length]
+            bert_out = self.pool(sequence_out)  # (N, hidden_dim, 1)
+            bert_out = rearrange(bert_out, "n d 1 -> n d")
 
         # visual encoding
         x1 = self.img_fc1(vgg_out)
@@ -83,7 +103,9 @@ class SpotFake(FakeNewsBase):
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
-            self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay
+            self.parameters(),
+            lr=self.hparams.lr,
+            weight_decay=self.hparams.weight_decay,
         )
         scheduler = get_constant_schedule_with_warmup(
             optimizer=optimizer, num_warmup_steps=self.hparams.num_warmup_steps

@@ -11,7 +11,7 @@ from src.datamodules.fake_news import MultiModalData
 @pytest.mark.parametrize("batch_size", [32, 128])
 def test_fake_news_datamodule(batch_size):
     # check data path
-    config_path = Path("/data/deeplearning-all-in-one/configs/datamodule/fake_news_data.yaml")
+    config_path = Path("configs/datamodule/fake_news_data.yaml")
     assert config_path.exists()
     with open(config_path) as infile:
         config = yaml.safe_load(infile)

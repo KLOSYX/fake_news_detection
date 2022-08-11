@@ -140,3 +140,4 @@ pyrootutils     # standardizing the project root setup
 pre-commit      # hooks for applying linters on commit
 pytest          # tests
 sh              # for running bash commands in some tests
+deepspeed       # for deepspeed strategy in pytorch-lightning
