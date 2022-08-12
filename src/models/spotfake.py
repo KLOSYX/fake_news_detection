@@ -1,5 +1,5 @@
 import torch
-from einops import rearrange, reduce
+from einops import reduce
 from torch import nn
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
 from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
@@ -71,7 +71,7 @@ class SpotFake(FakeNewsBase):
         vgg_out = self.vgg_model(img_encodeds)
         if self.hparams.pooler == "pooler_output":
             bert_out = self.bert(**text_encodeds).pooler_output
-        elif self.hparams.pooler == "avg_pool":
+        else:
             bert_out = []
             attention_mask: torch.Tensor = text_encodeds.attention_mask  # [N, L]
             sequence_out: torch.Tensor = self.bert(**text_encodeds).last_hidden_state  # [N, L, d]
