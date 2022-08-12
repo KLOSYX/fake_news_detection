@@ -30,7 +30,7 @@ hydra-optuna-sweeper == 1.2.0
 jieba == 0.42.1
 
 # deeplearning-all-in-one/src/utils/plot_confusion_matrix.py: 4
-matplotlib == 3.5.2
+matplotlib == 3.5.3
 
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 38
 # deeplearning-all-in-one/src/datamodules/components/mix_modal_dataset.py: 3
