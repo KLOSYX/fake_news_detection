@@ -85,7 +85,7 @@ rich == 12.5.1
 scikit_learn == 1.1.2
 
 # deeplearning-all-in-one/setup.py: 3
-setuptools == 63.4.2
+setuptools == 64.0.1
 
 # deeplearning-all-in-one/notebooks/cls_demo.ipynb: 2
 # deeplearning-all-in-one/notebooks/gen_pseudo_labels.ipynb: 3
