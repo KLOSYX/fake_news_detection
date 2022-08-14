@@ -24,6 +24,7 @@ trainer:
   devices: 4,5,6,7
   log_every_n_steps: 100
   precision: 16
+  val_check_interval: 1000
 
 logger:
   wandb:
@@ -37,7 +38,7 @@ callbacks:
   early_stopping:
     monitor: ${monitor}
     mode: min
-    patience: 5
+    patience: 3
 
 datamodule:
   batch_size: 64
