@@ -66,7 +66,7 @@ class CLIP(pl.LightningModule):
         self.text_encoder = BertForSequenceClassification.from_pretrained(
             text_encoder_name, cache_dir="/data/.cache"
         )
-        self.loss = Loss()
+        self.criterion = Loss()
 
         self._freeze_except_startwith(self.clip_model, [])
         self._freeze_except_startwith(self.text_encoder, ["bert.embeddings"])
@@ -100,6 +100,24 @@ class CLIP(pl.LightningModule):
         logit_scale = self.clip_model.logit_scale.exp()
         return image_features, logit_scale * text_features
 
+    def forward_loss(self, batch):
+        text_encoded, image_encoded = batch
+        batch_size = text_encoded.input_ids.shape[0]
+        img_embed, scale_text_embed = self(text_encoded, image_encoded)  # [local batch, C]
+        if self.on_gpu:
+            all_img = all_gather(img_embed)  # [global batch, C]
+            all_scale_text_embed = all_gather(scale_text_embed)  # [global batch, C]
+        else:
+            all_img = img_embed
+            all_scale_text_embed = scale_text_embed
+
+        logits_per_image = all_img @ all_scale_text_embed.t()  # [global batch, global batch]
+        logits_per_text = all_scale_text_embed @ all_img.t()  # [global batch, global batch]
+
+        ground_truth = torch.arange(logits_per_image.shape[0]).to(self.device)
+        loss = self.criterion(logits_per_image, logits_per_text, ground_truth)
+        return loss
+
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
             self.parameters(),
@@ -113,60 +131,18 @@ class CLIP(pl.LightningModule):
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        text_encoded, image_encoded = batch
-        batch_size = text_encoded.input_ids.shape[0]
-        img_embed, scale_text_embed = self(text_encoded, image_encoded)  # [local batch, C]
-        if self.on_gpu:
-            all_img = all_gather(img_embed)  # [global batch, C]
-            all_scale_text_embed = all_gather(scale_text_embed)  # [global batch, C]
-        else:
-            all_img = img_embed
-            all_scale_text_embed = scale_text_embed
-
-        logits_per_image = all_img @ all_scale_text_embed.t()  # [global batch, global batch]
-        logits_per_text = all_scale_text_embed @ all_img.t()  # [global batch, global batch]
-
-        ground_truth = torch.arange(logits_per_image.shape[0]).to(self.device)
-        loss = self.loss(logits_per_image, logits_per_text, ground_truth)
-        self.log("train/loss", loss)
+        loss = self.forward_loss(batch)
+        self.log("train/loss", loss, sync_dist=True)
 
         return loss
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        text_encoded, image_encoded = batch
-        batch_size = text_encoded.input_ids.shape[0]
-        img_embed, scale_text_embed = self(text_encoded, image_encoded)  # [local batch, C]
-        if self.on_gpu:
-            all_img = all_gather(img_embed)  # [global batch, C]
-            all_scale_text_embed = all_gather(scale_text_embed)  # [global batch, C]
-        else:
-            all_img = img_embed
-            all_scale_text_embed = scale_text_embed
-
-        logits_per_image = all_img @ all_scale_text_embed.t()  # [global batch, global batch]
-        logits_per_text = all_scale_text_embed @ all_img.t()  # [global batch, global batch]
-
-        ground_truth = torch.arange(logits_per_image.shape[0]).to(self.device)
-        loss = self.loss(logits_per_image, logits_per_text, ground_truth)
-        self.log("val/loss", loss)
+        loss = self.forward_loss(batch)
+        self.log("val/loss", loss, sync_dist=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        text_encoded, image_encoded = batch
-        batch_size = text_encoded.input_ids.shape[0]
-        img_embed, scale_text_embed = self(text_encoded, image_encoded)  # [local batch, C]
-        if self.on_gpu:
-            all_img = all_gather(img_embed)  # [global batch, C]
-            all_scale_text_embed = all_gather(scale_text_embed)  # [global batch, C]
-        else:
-            all_img = img_embed
-            all_scale_text_embed = scale_text_embed
-
-        logits_per_image = all_img @ all_scale_text_embed.t()  # [global batch, global batch]
-        logits_per_text = all_scale_text_embed @ all_img.t()  # [global batch, global batch]
-
-        ground_truth = torch.arange(logits_per_image.shape[0]).to(self.device)
-        loss = self.loss(logits_per_image, logits_per_text, ground_truth)
-        self.log("test/loss", loss)
+        loss = self.forward_loss(batch)
+        self.log("test/loss", loss, sync_dist=True)
 
 
 if __name__ == "__main__":
