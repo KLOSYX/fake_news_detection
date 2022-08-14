@@ -54,7 +54,11 @@ class Collector:
             padding="max_length",
             return_tensors="pt",
         )
-        image_encoded = self.processor(images) if self.processor is not None else list(images)
+        image_encoded = (
+            self.processor(images, return_tensors="pt")
+            if self.processor is not None
+            else list(images)
+        )
         return text_encoded, image_encoded
 
 
@@ -86,11 +90,13 @@ class MultiModalDatamodule(pl.LightningDataModule):
             dataset = MultiModalDataset(self.train_path)
             val_size = int(len(dataset) * self.val_ratio)
             train_size = len(dataset) - val_size
+            print("Train size", train_size, "Val size", val_size)
             self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
 
         if stage == "test" or stage is None:
             assert self.test_path is not None, "For stage test, test path must be provided!"
             self.test_data = MultiModalDataset(self.test_path)
+            print("Test size", len(self.test_data))
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return DataLoader(
