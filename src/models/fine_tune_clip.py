@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
+import torchmetrics
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from transformers import (
@@ -67,6 +68,7 @@ class CLIP(pl.LightningModule):
             text_encoder_name, cache_dir="/data/.cache"
         )
         self.criterion = Loss()
+        self.val_best = torchmetrics.MaxMetric()
 
         self._freeze_except_startwith(self.clip_model, [])
         self._freeze_except_startwith(self.text_encoder, ["bert.embeddings"])
@@ -138,7 +140,9 @@ class CLIP(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         loss = self.forward_loss(batch)
+        self.val_best.update(loss.item())
         self.log("val/loss", loss, sync_dist=True)
+        self.log("val/best", self.val_best.compute(), sync_dist=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         loss = self.forward_loss(batch)
