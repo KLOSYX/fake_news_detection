@@ -1,9 +1,9 @@
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
+import jpeg4py as jpeg
 import pandas as pd
 import pytorch_lightning as pl
-from PIL import Image
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from torch.utils.data import DataLoader, Dataset, random_split
 from transformers import AutoFeatureExtractor, AutoTokenizer
@@ -25,7 +25,8 @@ class MultiModalDataset(Dataset):
 
     def __getitem__(self, item: int) -> Any:
         text, img_path = self.data.iloc[item]["text"], self.data.iloc[item]["img"]
-        image = Image.open(img_path)
+        # image = Image.open(img_path)
+        image = jpeg.JPEG(img_path).decode()
         return text, image
 
 

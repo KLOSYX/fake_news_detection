@@ -41,4 +41,5 @@ callbacks:
     patience: 3
 
 datamodule:
+  num_workers: 64
   batch_size: 64
