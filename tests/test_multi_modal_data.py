@@ -9,7 +9,7 @@ from src.datamodules.multi_modal_data import MultiModalDatamodule
 
 
 @pytest.mark.parametrize("batch_size", [32, 128])
-def test_fake_news_datamodule(batch_size):
+def test_multi_modal_data(batch_size):
     # check data path
     config_path = Path("configs/datamodule/multi_modal_data.yaml")
     assert config_path.exists()

@@ -1,12 +1,20 @@
+import copy
+import os
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
 import jpeg4py as jpeg
+
+# from PIL import Image
 import pandas as pd
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from torch.utils.data import DataLoader, Dataset, random_split
 from transformers import AutoFeatureExtractor, AutoTokenizer
+
+torch.multiprocessing.set_sharing_strategy("file_system")
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class MultiModalDataset(Dataset):
@@ -27,7 +35,7 @@ class MultiModalDataset(Dataset):
         text, img_path = self.data.iloc[item]["text"], self.data.iloc[item]["img"]
         # image = Image.open(img_path)
         image = jpeg.JPEG(img_path).decode()
-        return text, image
+        return copy.deepcopy(text), image
 
 
 class Collector:

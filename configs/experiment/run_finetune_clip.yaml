@@ -21,9 +21,10 @@ trainer:
   min_epochs: 0
   max_epochs: 20
   gradient_clip_val: 0
-  devices: 4,5,6,7
+  devices: [4, 5, 6, 7]
   precision: 16
   val_check_interval: 1000
+  strategy: deepspeed_stage_2
 
 logger:
   wandb:
@@ -40,5 +41,5 @@ callbacks:
     patience: 3
 
 datamodule:
-  num_workers: 64
-  batch_size: 64
+  num_workers: 32
+  batch_size: 32

@@ -68,7 +68,7 @@ class CLIP(pl.LightningModule):
             text_encoder_name, cache_dir="/data/.cache"
         )
         self.criterion = Loss()
-        self.val_best = torchmetrics.MaxMetric()
+        self.val_best = torchmetrics.MinMetric()
 
         self._freeze_except_startwith(self.clip_model, [])
         self._freeze_except_startwith(self.text_encoder, ["bert.embeddings"])
@@ -102,9 +102,8 @@ class CLIP(pl.LightningModule):
         logit_scale = self.clip_model.logit_scale.exp()
         return image_features, logit_scale * text_features
 
-    def forward_loss(self, batch):
+    def forward_loss(self, batch: Any) -> torch.Tensor:
         text_encoded, image_encoded = batch
-        batch_size = text_encoded.input_ids.shape[0]
         img_embed, scale_text_embed = self(text_encoded, image_encoded)  # [local batch, C]
         if self.on_gpu:
             all_img = all_gather(img_embed)  # [global batch, C]
