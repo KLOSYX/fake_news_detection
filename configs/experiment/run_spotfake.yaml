@@ -5,7 +5,7 @@
 
 defaults:
   - override /datamodule: fake_news_data.yaml
-  - override /model: spotfake.yaml
+  - override /model: spotfake_model.yaml
   - override /callbacks: default.yaml
   - override /trainer: deepspeed.yaml
   - override /logger: wandb.yaml

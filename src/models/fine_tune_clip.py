@@ -9,7 +9,7 @@ from torch import nn
 from transformers import (
     BertForSequenceClassification,
     CLIPModel,
-    get_linear_schedule_with_warmup,
+    get_constant_schedule_with_warmup,
 )
 
 
@@ -106,10 +106,9 @@ class CLIP(pl.LightningModule):
             lr=self.hparams.lr,
             weight_decay=self.hparams.weight_decay,
         )
-        scheduler = get_linear_schedule_with_warmup(
+        scheduler = get_constant_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.hparams.num_warmup_steps,
-            num_training_steps=self.hparams.num_training_steps,
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 

@@ -5,7 +5,7 @@
 
 defaults:
   - override /datamodule: mix_modal_data.yaml
-  - override /model: dist_classify.yaml
+  - override /model: dist_classify_model.yaml
   - override /callbacks: default.yaml
   - override /trainer: deepspeed.yaml
   - override /logger: wandb.yaml

@@ -1,0 +1,43 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: multi_modal_data.yaml
+  - override /model: fine_tune_clip_model.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: deepspeed.yaml
+  - override /logger: wandb.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["finetune", "multimodal", "clip"]
+monitor: val/loss
+
+test: false
+
+seed: 42
+
+trainer:
+  min_epochs: 15
+  max_epochs: 30
+  gradient_clip_val: 0
+  devices: 4,5,6,7
+  log_every_n_steps: 100
+  precision: 16
+
+logger:
+  wandb:
+    project: finetune_clip
+    tags: ${tags}
+
+callbacks:
+  model_checkpoint:
+    monitor: ${monitor}
+    mode: min
+  early_stopping:
+    monitor: ${monitor}
+    mode: min
+    patience: 5
+
+datamodule:
+  batch_size: 64

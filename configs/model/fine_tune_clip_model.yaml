@@ -1,0 +1,7 @@
+_target_: src.models.fine_tune_clip.CLIP
+
+clip_name: openai/clip-vit-base-patch32
+text_encoder_name: IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese
+lr: 0.0001
+weight_decay: 0.05
+num_warmup_steps: 4000

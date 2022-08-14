@@ -1,0 +1,10 @@
+_target_: src.datamodules.multi_modal_data.MultiModalDatamodule
+
+train_path: /data/clean_raw_text/all_data_cleaned_wk_refine.json
+test_path: null
+tokenizer_name: IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese
+processor_name: openai/clip-vit-base-patch32
+max_length: 200
+val_ratio: 0.2
+batch_size: 32
+num_workers: 32
