@@ -42,3 +42,6 @@ callbacks:
 datamodule:
   num_workers: 16
   batch_size: 32
+
+model:
+  lr: 0.00001
