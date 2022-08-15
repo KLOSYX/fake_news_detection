@@ -2,7 +2,6 @@ from typing import Any, Optional
 
 import pytorch_lightning as pl
 import torch
-import torch.distributed as dist
 import torch.nn.functional as F
 import torchmetrics
 from pytorch_lightning.utilities.types import STEP_OUTPUT
@@ -12,29 +11,6 @@ from transformers import (
     CLIPModel,
     get_constant_schedule_with_warmup,
 )
-
-
-class AllGatherFunction(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, tensor: torch.Tensor, reduce_dtype: torch.dtype = torch.float32):
-        ctx.reduce_dtype = reduce_dtype
-
-        output = list(torch.empty_like(tensor) for _ in range(dist.get_world_size()))
-        dist.all_gather(output, tensor)
-        output = torch.cat(output, dim=0)
-        return output
-
-    @staticmethod
-    def backward(ctx, grad_output: torch.Tensor):
-        grad_dtype = grad_output.dtype
-        input_list = list(grad_output.to(ctx.reduce_dtype).chunk(dist.get_world_size()))
-        grad_input = torch.empty_like(input_list[dist.get_rank()])
-        dist.reduce_scatter(grad_input, input_list)
-        return grad_input.to(grad_dtype)
-
-
-def all_gather(tensor):
-    return AllGatherFunction.apply(tensor)
 
 
 class Loss(nn.Module):
@@ -105,12 +81,13 @@ class CLIP(pl.LightningModule):
     def forward_loss(self, batch: Any) -> torch.Tensor:
         text_encoded, image_encoded = batch
         img_embed, scale_text_embed = self(text_encoded, image_encoded)  # [local batch, C]
-        if self.on_gpu:
-            all_img = all_gather(img_embed)  # [global batch, C]
-            all_scale_text_embed = all_gather(scale_text_embed)  # [global batch, C]
-        else:
-            all_img = img_embed
-            all_scale_text_embed = scale_text_embed
+        hidden_size = img_embed.size(1)
+        all_img = self.all_gather(img_embed, sync_grads=True).reshape(
+            -1, hidden_size
+        )  # [global batch, C]
+        all_scale_text_embed = self.all_gather(scale_text_embed, sync_grads=True).reshape(
+            -1, hidden_size
+        )  # [global batch, C]
 
         logits_per_image = all_img @ all_scale_text_embed.t()  # [global batch, global batch]
         logits_per_text = all_scale_text_embed @ all_img.t()  # [global batch, global batch]
