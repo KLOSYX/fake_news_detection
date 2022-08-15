@@ -1,10 +1,10 @@
-from typing import Any, Optional
+from typing import Any, List, Optional, Union
 
 import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
 import torchmetrics
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from torch import nn
 from transformers import (
     BertForSequenceClassification,
@@ -47,7 +47,7 @@ class CLIP(pl.LightningModule):
         self.val_best = torchmetrics.MinMetric()
 
         self._freeze_except_startwith(self.clip_model, [])
-        self._freeze_except_startwith(self.text_encoder, ["bert.embeddings"])
+        # self._freeze_except_startwith(self.text_encoder, ["bert.embeddings"])
 
     def _freeze_except_startwith(self, module: Any, except_list: list, verbose=True) -> None:
         for n, p in module.named_parameters():
@@ -116,8 +116,12 @@ class CLIP(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         loss = self.forward_loss(batch)
-        self.val_best.update(loss.item())
         self.log("val/loss", loss, sync_dist=True)
+        return loss
+
+    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        loss_epoch = torch.stack(outputs).mean()
+        self.val_best.update(loss_epoch.item())
         self.log("val/best", self.val_best.compute(), sync_dist=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
