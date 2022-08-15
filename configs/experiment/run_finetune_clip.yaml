@@ -20,10 +20,9 @@ seed: 42
 trainer:
   min_epochs: 0
   max_epochs: 20
-  gradient_clip_val: 0
-  devices: [4, 5, 6, 7]
+  gradient_clip_val: 1
+  devices: 3,5,6,7
   precision: 16
-  val_check_interval: 1000
   strategy: deepspeed_stage_2
 
 logger:
@@ -41,5 +40,5 @@ callbacks:
     patience: 3
 
 datamodule:
-  num_workers: 32
+  num_workers: 16
   batch_size: 32

@@ -1,20 +1,14 @@
-import copy
-import os
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
-import jpeg4py as jpeg
-
-# from PIL import Image
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from PIL import Image
 from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
 from torch.utils.data import DataLoader, Dataset, random_split
+from torchvision.transforms.functional import to_tensor
 from transformers import AutoFeatureExtractor, AutoTokenizer
-
-torch.multiprocessing.set_sharing_strategy("file_system")
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class MultiModalDataset(Dataset):
@@ -33,9 +27,8 @@ class MultiModalDataset(Dataset):
 
     def __getitem__(self, item: int) -> Any:
         text, img_path = self.data.iloc[item]["text"], self.data.iloc[item]["img"]
-        # image = Image.open(img_path)
-        image = jpeg.JPEG(img_path).decode()
-        return copy.deepcopy(text), image
+        raw_image = Image.open(img_path)
+        return text, raw_image
 
 
 class Collector:
@@ -66,7 +59,7 @@ class Collector:
         image_encoded = (
             self.processor(images, return_tensors="pt")
             if self.processor is not None
-            else list(images)
+            else torch.cat([img.unsqueeze(0) for img in images], dim=0)
         )
         return text_encoded, image_encoded
 
@@ -144,6 +137,7 @@ if __name__ == "__main__":
         train_path="/data/clean_raw_text/street_labeled_data.json",
         test_path="/data/clean_raw_text/street_labeled_data.json",
         tokenizer_name="IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese",
+        processor_name="openai/clip-vit-base-patch32",
     )
     dm.setup()
     dataloader = dm.train_dataloader()
