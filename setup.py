@@ -7,7 +7,7 @@ setup(
     version="0.0.1",
     description="My deeplearning environment",
     author="anbinx",
-    author_email="klosyx@outlook.com",
+    author_email="",
     url="https://github.com/user/project",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
     install_requires=["pytorch-lightning", "hydra-core"],
     packages=find_packages(),
