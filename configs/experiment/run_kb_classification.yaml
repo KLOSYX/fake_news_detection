@@ -1,0 +1,50 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: text_classification_data.yaml
+  - override /model: sequence_classification_model.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: deepspeed.yaml
+  - override /logger: wandb.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["bert", "kb", "classification"]
+monitor: val/accuracy_top_1
+bert_name_or_path: /data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm
+
+test: False
+
+seed: 42
+
+trainer:
+  min_epochs: 0
+  max_epochs: 10
+  gradient_clip_val: 0
+  devices: 3,5,6,7
+  precision: 16
+
+logger:
+  wandb:
+    project: kb_classification
+    tags: ${tags}
+
+callbacks:
+  model_checkpoint:
+    monitor: ${monitor}
+    mode: max
+  early_stopping:
+    monitor: ${monitor}
+    mode: max
+    patience: 3
+
+model:
+  learning_rate: 0.0001
+  bert_name: ${bert_name_or_path}
+
+datamodule:
+  tokenizer_name: ${bert_name_or_path}
