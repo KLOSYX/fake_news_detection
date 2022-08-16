@@ -39,7 +39,11 @@ class WeiboDataset:
         img_path = self.img_path / img_name
         img = Image.open(img_path)
         label = self.data.iloc[idx]["label"]
-        return text, self.transforms(img).unsqueeze(0), torch.tensor([label], dtype=torch.long)
+        return (
+            text,
+            self.transforms(img).unsqueeze(0),
+            torch.tensor([label], dtype=torch.long),
+        )
 
 
 class Collector:

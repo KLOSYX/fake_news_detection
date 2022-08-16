@@ -1,13 +1,12 @@
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
-import pytorch_lightning as pl
 import torch
-from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
-from torch.utils.data import DataLoader, Dataset, random_split
-from torchvision.transforms.functional import to_tensor
+from torch.utils.data import Dataset
 from transformers import AutoTokenizer
+
+from src.datamodules.dm_base import DatamoduleBase
 
 
 class TextDataset(Dataset):
@@ -50,66 +49,38 @@ class Collector:
         return text_encoded, torch.tensor(class_ids, dtype=torch.long)
 
 
-class TextClassificationDatamodule(pl.LightningDataModule):
+class TextClassificationDatamodule(DatamoduleBase):
     def __init__(
         self,
         train_path: Optional[str] = None,
         test_path: Optional[str] = None,
-        tokenizer_name: str = "bert-base-chinese",
-        max_length: int = 200,
         val_ratio: float = 0.2,
         batch_size: int = 8,
         num_workers: int = 0,
+        tokenizer_name: str = "bert-base-chinese",
+        max_length: int = 200,
     ):
-        super().__init__()
+        super().__init__(
+            TextDataset,
+            train_path,
+            test_path,
+            val_ratio,
+            batch_size,
+            num_workers,
+        )
         self.train_path = train_path
         self.test_path = test_path
-        self.val_ratio = val_ratio
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.collector = Collector(tokenizer_name=tokenizer_name, max_length=max_length)
 
-    def setup(self, stage: Optional[str] = None) -> None:
-        if stage == "fit" or stage is None:
-            assert self.train_path is not None, "For stage fit, train path must be provided!"
-            dataset = TextDataset(self.train_path)
-            val_size = int(len(dataset) * self.val_ratio)
-            train_size = len(dataset) - val_size
-            print("Train size", train_size, "Val size", val_size)
-            self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
+        self.tokenizer_name = tokenizer_name
+        self.max_length = max_length
 
-        if stage == "test" or stage is None:
-            assert self.test_path is not None, "For stage test, test path must be provided!"
-            self.test_data = TextDataset(self.test_path)
-            print("Test size", len(self.test_data))
-
-    def train_dataloader(self) -> TRAIN_DATALOADERS:
-        return DataLoader(
-            self.train_data,
-            batch_size=self.batch_size,
-            shuffle=True,
-            drop_last=True,
-            num_workers=self.num_workers,
-            collate_fn=self.collector,
+    def _get_dataset_args(self, stage: str) -> Dict:
+        return dict(
+            file_path=self.train_path if stage == "fit" else self.test_path,
         )
 
-    def val_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(
-            self.val_data,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            collate_fn=self.collector,
-        )
-
-    def test_dataloader(self) -> EVAL_DATALOADERS:
-        return DataLoader(
-            self.test_data,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-            collate_fn=self.collector,
-        )
+    def _init_collector(self) -> None:
+        self.collector = Collector(self.tokenizer_name, self.max_length)
 
 
 if __name__ == "__main__":
