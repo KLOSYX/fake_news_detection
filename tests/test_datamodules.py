@@ -11,7 +11,7 @@ root = pyrootutils.setup_root(__file__, dotenv=True, pythonpath=True)
 
 
 @pytest.mark.slow
-def test_fake_news_datamodule():
+def test_datamodules():
     # check data path
     config_path = Path(root / "configs" / "datamodule")
     for config in config_path.glob("*.yaml"):
