@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
-from datamodules.components.mix_modal_dataset import MixModalDataset
+from src.datamodules.components.mix_modal_dataset import MixModalDataset
 
 
 class Processor:

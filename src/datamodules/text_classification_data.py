@@ -62,8 +62,6 @@ class TextClassificationDatamodule(DatamoduleBase):
     ):
         super().__init__(
             TextDataset,
-            train_path,
-            test_path,
             val_ratio,
             batch_size,
             num_workers,

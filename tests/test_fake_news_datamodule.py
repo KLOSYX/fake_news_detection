@@ -30,7 +30,7 @@ def test_fake_news_datamodule(batch_size):
 
     # check data loader
     dm.setup()
-    assert dm.train_dataset and dm.val_dataset and dm.test_dataset
+    assert dm.train_data and dm.val_data and dm.test_data
     assert dm.train_dataloader() and dm.val_dataloader() and dm.test_dataloader()
 
     # check data type

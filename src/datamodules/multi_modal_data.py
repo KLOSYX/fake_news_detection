@@ -77,8 +77,6 @@ class MultiModalDatamodule(DatamoduleBase):
     ):
         super().__init__(
             MultiModalDataset,
-            train_path=train_path,
-            test_path=test_path,
             val_ratio=val_ratio,
             batch_size=batch_size,
             num_workers=num_workers,
