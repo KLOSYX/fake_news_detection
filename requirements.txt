@@ -17,7 +17,6 @@ pandas == 1.4.3
 pyrootutils == 1.0.4
 pytest == 7.1.2
 pytorch_lightning == 1.7.0
-fairscale == 0.4.8
 requests == 2.22.0
 rich == 12.5.1
 scikit_learn == 1.1.2

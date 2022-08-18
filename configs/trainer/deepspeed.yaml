@@ -7,5 +7,7 @@ max_epochs: 10
 
 accelerator: gpu
 devices: 1
-strategy: deepspeed_stage_2
+strategy:
+  _target_: pytorch_lightning.strategies.DeepSpeedStrategy
+  stage: 2
 num_nodes: 1

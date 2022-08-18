@@ -7,7 +7,7 @@ defaults:
   - override /datamodule: text_classification_data.yaml
   - override /model: sequence_classification_model.yaml
   - override /callbacks: default.yaml
-  - override /trainer: deepspeed.yaml
+  - override /trainer: ddp.yaml
   - override /logger: wandb.yaml
 
 # all parameters below will be merged with parameters from default configurations set above
