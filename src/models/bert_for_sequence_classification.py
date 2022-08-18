@@ -5,12 +5,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchmetrics
+from einops import reduce
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
-from transformers import (
-    BertConfig,
-    BertForSequenceClassification,
-    get_constant_schedule_with_warmup,
-)
+from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
 
 from utils.focal_loss import FocalLoss
 
@@ -26,7 +23,13 @@ class BertSequenceClassification(pl.LightningModule):
         dropout_prob: float = 0.1,
         label_smooth: bool = False,
         num_warmup_steps: int = 0,
+        pooler: str = "first_token",
     ) -> None:
+        assert pooler in [
+            "first_token",
+            "average",
+        ], "pooler must be either 'first_token' or 'average'"
+
         super().__init__()
         self.save_hyperparameters()
 
@@ -35,9 +38,8 @@ class BertSequenceClassification(pl.LightningModule):
         config.hidden_dropout_prob = dropout_prob
         config.attention_probs_dropout_prob = dropout_prob
         config.num_labels = num_classes
-        self.bert = BertForSequenceClassification.from_pretrained(
-            bert_name, cache_dir="/data/.cache", config=config
-        )
+        self.bert = BertModel.from_pretrained(bert_name, cache_dir="/data/.cache", config=config)
+        self.classifier = nn.Linear(config.hidden_size, num_classes)
 
         # loss function
         self.criterion = (
@@ -73,7 +75,22 @@ class BertSequenceClassification(pl.LightningModule):
         )
 
     def forward(self, tokens):
-        logits = self.bert(**tokens).logits
+        if self.hparams.pooler == "first_token":
+            bert_out = self.bert(**tokens).pooler_output
+        else:
+            bert_out = []
+            attention_mask: torch.Tensor = tokens.attention_mask  # [N, L]
+            sequence_out: torch.Tensor = self.bert(**tokens).last_hidden_state  # [N, L, d]
+            input_mask_expanded: torch.Tensor = (
+                attention_mask.unsqueeze(-1).expand(sequence_out.size()).to(sequence_out.dtype)
+            )
+            t = sequence_out * input_mask_expanded  # [N, L, d]
+            sum_embed = reduce(t, "N L d -> N d", "sum")
+            sum_mask = reduce(input_mask_expanded, "N L d -> N d", "sum")
+            sum_mask = torch.clamp(sum_mask, min=1e-9)  # make sure not divided by zero
+            bert_out.append(sum_embed / sum_mask)
+            bert_out = torch.cat(bert_out, dim=1)
+        logits = self.classifier(bert_out)
         return logits
 
     def forward_loss(self, tokens, class_ids):
@@ -92,6 +109,11 @@ class BertSequenceClassification(pl.LightningModule):
             optimizer, num_warmup_steps=self.hparams.num_warmup_steps
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
+
+    def on_train_start(self) -> None:
+        self.train_acc.reset()
+        self.val_acc.reset()
+        self.val_best.reset()
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         tokens, class_ids = batch
