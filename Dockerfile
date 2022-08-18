@@ -8,7 +8,7 @@
 FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 ENV LANG C.UTF-8
 # Copy requirements.txt
-COPY requirements.txt ./
+COPY requirements.txt /tmp/requirements.txt
 RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
     PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
     GIT_CLONE="git clone --depth 10" && \
@@ -67,8 +67,7 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 # ==================================================================
 # requirmemnts
 # ------------------------------------------------------------------
-    $PIP_INSTALL -r requirements.txt && \
-    rm requirements.txt && \
+    $PIP_INSTALL -r /tmp/requirements.txt && \
     $PIP_INSTALL deepspeed && \
 # ==================================================================
 # config & cleanup
