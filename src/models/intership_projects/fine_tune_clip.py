@@ -1,3 +1,9 @@
+# !/usr/bin/env python3
+# @Time : 2022/8/19
+# @Author : anbinx
+# @Email : klosyx@outlook.com
+# @Model Description: Fine tune CLIP model.
+
 from typing import Any, List, Optional, Union
 
 import pytorch_lightning as pl

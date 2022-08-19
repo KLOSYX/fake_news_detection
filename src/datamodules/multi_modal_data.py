@@ -7,7 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
-from src.datamodules.dm_base import DatamoduleBase
+from src.datamodules.components.dm_base import DatamoduleBase
 
 
 class MultiModalDataset(Dataset):

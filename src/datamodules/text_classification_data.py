@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
-from src.datamodules.dm_base import DatamoduleBase
+from src.datamodules.components.dm_base import DatamoduleBase
 
 
 class TextDataset(Dataset):

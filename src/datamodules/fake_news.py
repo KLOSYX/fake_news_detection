@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import transforms
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
-from src.datamodules.dm_base import DatamoduleBase
+from src.datamodules.components.dm_base import DatamoduleBase
 
 
 class WeiboDataset(Dataset):

@@ -1,3 +1,9 @@
+# !/usr/bin/env python3
+# @Time : 2022/8/19
+# @Author : anbinx
+# @Email : klosyx@outlook.com
+# @Model Description: Use Bert to classify texts.
+
 from typing import List, Optional, Union
 
 import pytorch_lightning as pl
@@ -6,25 +12,21 @@ import torch.nn as nn
 import torchmetrics
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from sklearn.metrics import confusion_matrix
-from transformers import get_constant_schedule_with_warmup
+from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
 
-from models.components.clip_base import ClipBase
-from utils.focal_loss import FocalLoss
-from utils.plot_confusion_matrix import plot_confusion_matrix
+from src.utils.focal_loss import FocalLoss
+from src.utils.plot_confusion_matrix import plot_confusion_matrix
 
 
-class ClipClassify(pl.LightningModule):
+class DistClassify(pl.LightningModule):
     def __init__(
         self,
-        modal="multi",
-        clip_name="openai/clip-vit-base-patch32",
-        bert_name="IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese",
+        bert_name="hfl/chinese-macbert-base",
         num_classes=62,
         focal_loss=False,
         learning_rate=1e-5,
         weight_decay=0.05,
         dropout_prob=0.1,
-        load_mlm_checkpoint=False,
         label_smooth=False,
         **kwargs,
     ) -> None:
@@ -32,17 +34,11 @@ class ClipClassify(pl.LightningModule):
         self.save_hyperparameters()
 
         # model
-        self.model = ClipBase(clip_name, bert_name)
-        self.model.freeze_clip()
-        self.model.freeze_bert()
-        if modal == "multi":
-            self.fc1 = nn.Linear(self.model.clip.config.projection_dim * 2, 2048)
-        else:
-            self.fc1 = nn.Linear(self.model.clip.config.projection_dim, 2048)
-        self.fc2 = nn.Linear(2048, 256)
-        self.dropout = nn.Dropout(dropout_prob)
-        self.classifier = nn.Linear(256, num_classes)
-        self.act = nn.GELU()
+        config = BertConfig.from_pretrained(bert_name, cache_dir="/data/.cache")
+        config.hidden_dropout_prob = dropout_prob
+        config.attention_probs_dropout_prob = dropout_prob
+        self.bert = BertModel.from_pretrained(bert_name, cache_dir="/data/.cache", config=config)
+        self.proj = nn.Linear(config.hidden_size, num_classes)
 
         # loss function
         self.criterion = (
@@ -63,7 +59,6 @@ class ClipClassify(pl.LightningModule):
         self.test_acc = self.get_top_k_metric_collection(
             "Accuracy", prefix="test", num_classes=num_classes, multiclass=True
         )
-        self.val_acc_best = torchmetrics.MaxMetric()
 
     def get_top_k_metric_collection(
         self, metric="Accuracy", prefix="train", num_classes=None, top_k=3, **kwargs
@@ -77,22 +72,9 @@ class ClipClassify(pl.LightningModule):
             }
         )
 
-    def forward(self, img_encoded, text_encoded):
-        img_features, text_features = self.model(text_encoded, img_encoded)
-        if self.hparams.modal == "multi":
-            x = torch.cat([img_features, text_features], dim=1)  # [N, hidden_size * 2]
-        elif self.hparams.modal == "text":
-            x = text_features  # [N, hidden_size]
-        else:
-            x = img_features  # [N, hidden_size]
-        x = self.act(x)
-        x = self.fc1(x)
-        x = self.dropout(x)
-        x = self.act(x)
-        x = self.fc2(x)  # [N, 256]
-        x = self.dropout(x)
-        x = self.act(x)
-        logits = self.classifier(x)  # [N, num_classes]
+    def forward(self, tokens):
+        outputs = self.bert(**tokens)
+        logits = self.proj(outputs.pooler_output)
         return logits
 
     def configure_optimizers(self):
@@ -107,8 +89,8 @@ class ClipClassify(pl.LightningModule):
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        img_encoded, text_encoded, _, labels = batch
-        logits = self(img_encoded, text_encoded)
+        tokens, labels = batch
+        logits = self(tokens)
         loss = self.criterion(logits, labels)
         self.log_dict({"train/loss": loss}, sync_dist=True)
         self.log_dict(self.train_acc(logits, labels), sync_dist=True)
@@ -116,8 +98,8 @@ class ClipClassify(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        img_encoded, text_encoded, _, labels = batch
-        logits = self(img_encoded, text_encoded)
+        tokens, labels = batch
+        logits = self(tokens)
         loss = self.criterion(logits, labels)
         self.log_dict({"val/loss": loss}, sync_dist=True)
         self.log_dict(self.val_acc(logits, labels), sync_dist=True)
@@ -125,10 +107,6 @@ class ClipClassify(pl.LightningModule):
         return (logits, labels)
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        acc = self.val_acc.compute()["val/accuracy_top_1"]
-        self.val_acc_best.update(acc)
-        self.log("val/acc_best", self.val_acc_best.compute(), sync_dist=True, on_epoch=True)
-        self.val_acc.reset()
         if self.hparams.draw_confusion_matrix:
             logits, labels = zip(*outputs)
             file = (
@@ -147,8 +125,8 @@ class ClipClassify(pl.LightningModule):
                 self.logger.log_image(key="confusion_matrix", images=[fig])
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        img_encoded, text_encoded, _, labels = batch
-        logits = self(img_encoded, text_encoded)
+        tokens, labels = batch
+        logits = self(tokens)
         loss = self.criterion(logits, labels)
         self.log_dict({"test/loss": loss}, sync_dist=True)
         self.log_dict(self.test_acc(logits, labels), sync_dist=True)
