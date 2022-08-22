@@ -1,7 +1,7 @@
 # ==================================================================
 # module list
 # ------------------------------------------------------------------
-# python        3.8    (apt)
+# python        3.9    (apt)
 # pytorch       latest (pip)
 # ==================================================================
 
@@ -39,14 +39,14 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
 # ------------------------------------------------------------------
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
-        python3.8 \
-        python3.8-dev \
-        python3.8-distutils \
+        python3.9 \
+        python3.9-dev \
+        python3.9-distutils \
         && \
     wget -O ~/get-pip.py \
         https://bootstrap.pypa.io/get-pip.py && \
-    python3.8 ~/get-pip.py && \
-    ln -s /usr/bin/python3.8 /usr/local/bin/python && \
+    python3.9 ~/get-pip.py && \
+    ln -s /usr/bin/python3.9 /usr/local/bin/python && \
     pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
     $PIP_INSTALL \
         numpy \
