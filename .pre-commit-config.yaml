@@ -53,7 +53,7 @@ repos:
         args:
           [
             "--ignore",
-            "E501,F401,F841,W504,W503,E203",
+            "E402,E501,F401,F841,W504,W503,E203",
             "--exclude",
             "logs/*,data/*",
           ]
