@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Any, List, Optional
 
 import torch
-from torch.utils.data import Dataset
+from pytorch_lightning.utilities.types import EVAL_DATALOADERS, TRAIN_DATALOADERS
+from torch.utils.data import DataLoader, Dataset
 from transformers import AutoTokenizer
 
 from src.datamodules.components.dm_base import DatamoduleBase
@@ -100,6 +101,34 @@ class SimBertData(DatamoduleBase):
 
     def _init_collector(self) -> None:
         return Collector(self.tokenizer_name, self.max_length)
+
+    def train_dataloader(self) -> TRAIN_DATALOADERS:
+        return DataLoader(
+            self.train_data,
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True,
+            num_workers=self.num_workers,
+            collate_fn=self.collector,
+        )
+
+    def val_dataloader(self) -> EVAL_DATALOADERS:
+        return DataLoader(
+            self.val_data,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            collate_fn=self.collector,
+        )
+
+    def test_dataloader(self) -> EVAL_DATALOADERS:
+        return DataLoader(
+            self.test_data,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            collate_fn=self.collector,
+        )
 
 
 if __name__ == "__main__":
