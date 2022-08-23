@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader, Dataset, random_split
 class DatamoduleBase(pl.LightningDataModule):
     def __init__(
         self,
-        dataset_cls: Dataset,
         val_ratio: float = 0.2,
         batch_size: int = 8,
         num_workers: int = 0,
@@ -17,26 +16,24 @@ class DatamoduleBase(pl.LightningDataModule):
         self.val_ratio = val_ratio
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.dataset_cls = dataset_cls
 
-    def _get_dataset_args(self, stage: str = "fit") -> Dict:
+    def _get_dataset(self, stage: str = "fit") -> Dataset:
         raise NotImplementedError("get_dataset_args must be implemented!")
 
     def _init_collector(self) -> None:
         raise NotImplementedError("_init_collector must be implemented!")
 
     def setup(self, stage: Optional[str] = None) -> None:
-        self._init_collector()
-        assert hasattr(self, "collector"), "collector must be initialized!"
+        self.collector = self._init_collector()
         if stage == "fit" or stage is None:
-            dataset = self.dataset_cls(**self._get_dataset_args("fit"))
+            dataset = self._get_dataset(stage)
             val_size = int(len(dataset) * self.val_ratio)
             train_size = len(dataset) - val_size
             print("Train size", train_size, "Val size", val_size)
             self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
 
         if stage == "test" or stage is None:
-            self.test_data = self.dataset_cls(**self._get_dataset_args("test"))
+            self.test_data = self._get_dataset(stage)
             print("Test size", len(self.test_data))
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:

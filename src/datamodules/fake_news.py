@@ -89,7 +89,7 @@ class MultiModalData(DatamoduleBase):
         max_length: int = 200,
         dataset_name: str = "weibo",
     ):
-        super().__init__(None, val_set_ratio, batch_size, num_workers)
+        super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
         self.train_path = train_path
         self.test_path = test_path
@@ -100,14 +100,14 @@ class MultiModalData(DatamoduleBase):
             self.dataset_cls = WeiboDataset
 
     def _init_collector(self) -> None:
-        self.collector = Collector(
+        return Collector(
             tokenizer=self.tokenizer_name,
             processor=self.processor_name,
             max_length=self.max_length,
         )
 
-    def _get_dataset_args(self, stage: str = "fit") -> Dict:
-        return dict(
+    def _get_dataset(self, stage: str = "fit") -> Dict:
+        return self.dataset_cls(
             img_path=self.img_path,
             data_path=self.train_path if stage == "fit" else self.test_path,
         )

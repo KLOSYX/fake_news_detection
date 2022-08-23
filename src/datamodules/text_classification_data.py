@@ -61,7 +61,6 @@ class TextClassificationDatamodule(DatamoduleBase):
         max_length: int = 200,
     ):
         super().__init__(
-            TextDataset,
             val_ratio,
             batch_size,
             num_workers,
@@ -72,13 +71,13 @@ class TextClassificationDatamodule(DatamoduleBase):
         self.tokenizer_name = tokenizer_name
         self.max_length = max_length
 
-    def _get_dataset_args(self, stage: str) -> Dict:
-        return dict(
+    def _get_dataset(self, stage: str) -> Dict:
+        return TextDataset(
             file_path=self.train_path if stage == "fit" else self.test_path,
         )
 
     def _init_collector(self) -> None:
-        self.collector = Collector(self.tokenizer_name, self.max_length)
+        return Collector(self.tokenizer_name, self.max_length)
 
 
 if __name__ == "__main__":

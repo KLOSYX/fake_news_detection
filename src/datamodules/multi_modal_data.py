@@ -76,7 +76,6 @@ class MultiModalDatamodule(DatamoduleBase):
         num_workers: int = 0,
     ):
         super().__init__(
-            MultiModalDataset,
             val_ratio=val_ratio,
             batch_size=batch_size,
             num_workers=num_workers,
@@ -87,13 +86,13 @@ class MultiModalDatamodule(DatamoduleBase):
         self.processor_name = processor_name
         self.max_length = max_length
 
-    def _get_dataset_args(self, stage: str = "fit") -> Dict:
-        return dict(
+    def _get_dataset(self, stage: str = "fit") -> Dict:
+        return MultiModalDataset(
             file_path=self.train_path if stage == "fit" else self.test_path,
         )
 
     def _init_collector(self) -> None:
-        self.collector = Collector(
+        return Collector(
             tokenizer_name=self.tokenizer_name,
             processor_name=self.processor_name,
             max_length=self.max_length,
