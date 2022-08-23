@@ -3,7 +3,7 @@ _target_: src.datamodules.intership_projects.sim_bert_data.SimBertData
 train_path: /data/proj/henyang/sim_sentence_data.txt
 test_path: null
 tokenizer_name: hfl/chinese-roberta-wwm-ext
-max_length: 200
+max_length: 128
 val_ratio: 0.2
 batch_size: 32
-num_workers: 0
+num_workers: 32

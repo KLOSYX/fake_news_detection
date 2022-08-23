@@ -19,15 +19,13 @@ class SimilarityLoss(nn.Module):
 
     def forward(self, vectors: torch.Tensor) -> torch.Tensor:
         batch_size = vectors.size(0)
-        labels = torch.zeros((batch_size, batch_size)).to(vectors.device)
-        for i in range(batch_size):
-            if i % 2 == 0:
-                labels[i, i + 1] = 1
-            else:
-                labels[i, i - 1] = 1
-        labels.fill_diagonal_(-100)
+        labels = torch.arange(batch_size, device=vectors.device)
+        labels[::2] = labels[::2] + 1
+        labels[1::2] = labels[1::2] - 1
         norm_vector = F.normalize(vectors, dim=1)  # (N, vector_dim)
         similarity = torch.matmul(norm_vector, norm_vector.t()) * self.logit_scale  # (N, N)
+        similarity.fill_diagonal_(torch.finfo(similarity.dtype).min)
+        similarity = F.softmax(similarity, dim=1)
         loss = F.cross_entropy(similarity, labels, label_smoothing=self.label_smoothing)
         return loss
 
