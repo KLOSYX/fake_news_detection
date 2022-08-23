@@ -58,8 +58,8 @@ class TrainSimBert(pl.LightningModule):
     def forward(self, inputs: Dict) -> torch.Tensor:
         outputs, vector = self.model.forward_vector(**inputs)
         gen_loss = outputs.loss
-        # all_vector = self.all_gather(vector, sync_grads=True)
-        all_vector = vector
+        all_vector = self.all_gather(vector, sync_grads=True)
+        all_vector = torch.cat([x for x in all_vector], dim=0)
         sim_loss = self.criterion(all_vector)
         return gen_loss, sim_loss
 
