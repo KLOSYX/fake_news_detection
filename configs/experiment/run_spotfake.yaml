@@ -25,7 +25,7 @@ trainer:
   min_epochs: 0
   max_epochs: 50
   gradient_clip_val: 0
-  devices: 1,2,3,4
+  devices: 4
   precision: 32
   log_every_n_steps: 10
 
