@@ -50,7 +50,11 @@ class Collector:
             pad_token_id=self.tokenizer.pad_token_id,
             sep_token_id=self.tokenizer.sep_token_id,
         )
-        return {"input_ids": input_ids, "attention_mask": attention_mask, "labels": labels}
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": labels,
+        }
 
     @staticmethod
     def get_simbert_mask(input_ids: torch.Tensor, sep_token_id: int) -> torch.Tensor:
@@ -60,10 +64,10 @@ class Collector:
             first_sep = (sequence_ids == sep_token_id).nonzero()[0][-1].item()
             last_sep = (sequence_ids == sep_token_id).nonzero()[-1][-1].item()
             attention_mask = torch.zeros((sequence_length, sequence_length), dtype=torch.long)
-            attention_mask[: last_sep + 1, :first_sep] = 1
-            attention_mask[first_sep + 1 : last_sep + 1, first_sep:last_sep] = torch.tril(
-                torch.ones(last_sep - first_sep, last_sep - first_sep), diagonal=0
-            )
+            attention_mask[: last_sep + 1, : first_sep + 1] = 1
+            attention_mask[
+                first_sep + 1 : last_sep + 1, first_sep + 1 : last_sep + 1
+            ] = torch.tril(torch.ones(last_sep - first_sep, last_sep - first_sep), diagonal=0)
             attention_masks.append(attention_mask.unsqueeze(0))
         return torch.cat(attention_masks, dim=0)
 
