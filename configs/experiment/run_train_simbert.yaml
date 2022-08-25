@@ -23,7 +23,7 @@ seed: 42
 
 trainer:
   min_epochs: 0
-  max_epochs: 10
+  max_epochs: 20
   gradient_clip_val: 1.0
   devices: 1,2,3,4
   precision: 16
