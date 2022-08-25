@@ -47,7 +47,6 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
         https://bootstrap.pypa.io/get-pip.py && \
     python3.9 ~/get-pip.py && \
     ln -s /usr/bin/python3.9 /usr/local/bin/python && \
-    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
     $PIP_INSTALL \
         numpy \
         scipy \
