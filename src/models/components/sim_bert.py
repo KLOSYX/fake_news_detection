@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple, Union
 
 import torch
+import torch.nn.functional as F
 
 from src.models.components.bert.modeling_bert import (
     BertModel,
@@ -184,7 +185,7 @@ class SimBertModel(BertPreTrainedModel):
         vector_output = self.projector(
             forward_output.hidden_states[-1][:, 0, :]
         )  # (N, vector_dim)
-        return vector_output
+        return F.normalize(vector_output, dim=1)
 
     def prepare_inputs_for_generation(
         self, input_ids, past=None, attention_mask=None, **model_kwargs
