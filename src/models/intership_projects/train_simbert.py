@@ -59,7 +59,7 @@ class TrainSimBert(pl.LightningModule):
         outputs, vector = self.model.forward_vector(**inputs)
         gen_loss = outputs.loss
         all_vector = self.all_gather(vector, sync_grads=True)
-        if len(all_vector.shape) > 2:  # only calculate sim_loss when there are more than 2 vectors
+        if len(all_vector.shape) > 2:  # multi-gpu, global_size in dim 0
             all_vector = torch.cat([x for x in all_vector], dim=0)
         sim_loss = self.criterion(all_vector)
         return gen_loss, sim_loss
