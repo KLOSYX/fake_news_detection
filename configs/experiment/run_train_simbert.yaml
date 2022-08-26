@@ -7,7 +7,7 @@ defaults:
   - override /datamodule: sim_bert_data.yaml
   - override /model: sim_bert_model.yaml
   - override /callbacks: default.yaml
-  - override /trainer: ddp.yaml
+  - override /trainer: deepspeed.yaml
   - override /logger: wandb.yaml
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -25,7 +25,7 @@ trainer:
   min_epochs: 0
   max_epochs: 20
   gradient_clip_val: 1.0
-  devices: 4
+  devices: 1,2,3,4
   precision: 16
   log_every_n_steps: 50
 
@@ -50,3 +50,4 @@ model:
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}
+  val_ratio: 0.1
