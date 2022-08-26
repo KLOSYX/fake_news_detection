@@ -140,7 +140,7 @@ class SimBertModel(BertPreTrainedModel):
         labels: Optional[torch.Tensor] = None,
         output_attentions: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-    ) -> Union[Tuple[torch.Tensor], CausalLMOutputWithCrossAttentions]:
+    ) -> Tuple[Union[torch.Tensor, CausalLMOutputWithCrossAttentions]]:
         forward_output = self.forward(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -161,7 +161,7 @@ class SimBertModel(BertPreTrainedModel):
     def encode_text(
         self,
         input_ids: Optional[torch.Tensor] = None,
-    ) -> Union[Tuple[torch.Tensor], CausalLMOutputWithCrossAttentions]:
+    ) -> torch.Tensor:
         forward_output = self.forward(
             input_ids=input_ids,
             output_hidden_states=True,
