@@ -160,10 +160,15 @@ class SimBertModel(BertPreTrainedModel):
 
     def encode_text(
         self,
-        input_ids: Optional[torch.Tensor] = None,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> torch.Tensor:
+        assert isinstance(input_ids, torch.Tensor) and isinstance(
+            attention_mask, torch.Tensor
+        ), "input_ids and attention_mask must be of type torch.Tensor"
         forward_output = self.forward(
             input_ids=input_ids,
+            attention_mask=attention_mask,
             output_hidden_states=True,
         )
         vector_output = self.projector(
