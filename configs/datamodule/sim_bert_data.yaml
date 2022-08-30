@@ -1,4 +1,4 @@
-_target_: src.datamodules.intership_projects.sim_bert_data.SimBertData
+_target_: src.datamodules.internship_projects.sim_bert_data.SimBertData
 
 train_path: /data/proj/henyang/sim_sentence_data.txt
 test_path: /data/proj/henyang/sim_sentence_data.txt

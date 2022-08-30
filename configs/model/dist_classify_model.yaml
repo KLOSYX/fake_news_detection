@@ -1,4 +1,4 @@
-_target_: src.models.intership_projects.dist_classify.DistClassify
+_target_: src.models.internship_projects.dist_classify.DistClassify
 
 draw_confusion_matrix: False
 num_classes: 58

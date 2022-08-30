@@ -1,4 +1,4 @@
-_target_: src.models.intership_projects.clip_classify.ClipClassify
+_target_: src.models.internship_projects.clip_classify.ClipClassify
 
 modal: multi
 draw_confusion_matrix: False

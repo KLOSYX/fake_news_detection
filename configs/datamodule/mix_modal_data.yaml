@@ -1,4 +1,4 @@
-_target_: src.datamodules.intership_projects.mix_modal_data.MixModalData
+_target_: src.datamodules.internship_projects.mix_modal_data.MixModalData
 only_img: False
 tokenizer_name: /data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm
 whole_word_mask: False
