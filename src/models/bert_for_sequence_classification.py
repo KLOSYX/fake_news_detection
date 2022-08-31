@@ -9,7 +9,7 @@ from einops import reduce
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
 
-from utils.focal_loss import FocalLoss
+from utils.loss.focal_loss import FocalLoss
 
 
 class BertSequenceClassification(pl.LightningModule):
