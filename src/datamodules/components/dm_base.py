@@ -20,11 +20,11 @@ class DatamoduleBase(pl.LightningDataModule):
     def _get_dataset(self, stage: str = "fit") -> Dataset:
         raise NotImplementedError("get_dataset_args must be implemented!")
 
-    def _init_collector(self) -> None:
+    def _get_collector(self) -> Any:
         raise NotImplementedError("_init_collector must be implemented!")
 
     def setup(self, stage: Optional[str] = None) -> None:
-        self.collector = self._init_collector()
+        self.collector = self._get_collector()
         if stage == "fit" or stage is None:
             dataset = self._get_dataset(stage)
             val_size = int(len(dataset) * self.val_ratio)

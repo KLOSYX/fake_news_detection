@@ -103,7 +103,7 @@ class SimBertData(DatamoduleBase):
     def _get_dataset(self, stage: str = "fit") -> Dataset:
         return SimSenDataset(self.train_path) if stage == "fit" else SimSenDataset(self.test_path)
 
-    def _init_collector(self) -> None:
+    def _get_collector(self) -> Any:
         return Collector(self.tokenizer_name, self.max_length)
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:

@@ -13,7 +13,7 @@ from src.models.components.sim_bert import SimBertModel
 class SimilarityLoss(nn.Module):
     def __init__(self, logit_scale: float = 30.0, label_smoothing: float = 0.0) -> None:
         super().__init__()
-        assert label_smoothing >= 0.0 and label_smoothing <= 1.0
+        assert 0.0 <= label_smoothing <= 1.0
         self.logit_scale = logit_scale  # according to: https://spaces.ac.cn/archives/7427
         self.label_smoothing = label_smoothing
 

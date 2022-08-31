@@ -86,12 +86,12 @@ class MultiModalDatamodule(DatamoduleBase):
         self.processor_name = processor_name
         self.max_length = max_length
 
-    def _get_dataset(self, stage: str = "fit") -> Dict:
+    def _get_dataset(self, stage: str = "fit") -> Dataset:
         return MultiModalDataset(
             file_path=self.train_path if stage == "fit" else self.test_path,
         )
 
-    def _init_collector(self) -> None:
+    def _get_collector(self) -> Any:
         return Collector(
             tokenizer_name=self.tokenizer_name,
             processor_name=self.processor_name,

@@ -99,14 +99,14 @@ class MultiModalData(DatamoduleBase):
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
 
-    def _init_collector(self) -> None:
+    def _get_collector(self) -> Any:
         return Collector(
             tokenizer=self.tokenizer_name,
             processor=self.processor_name,
             max_length=self.max_length,
         )
 
-    def _get_dataset(self, stage: str = "fit") -> Dict:
+    def _get_dataset(self, stage: str = "fit") -> Dataset:
         return self.dataset_cls(
             img_path=self.img_path,
             data_path=self.train_path if stage == "fit" else self.test_path,
