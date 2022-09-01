@@ -35,7 +35,7 @@ class WeiboDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> Tuple[Any]:
+    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["title"]
         img_name = self.data.iloc[idx]["imgs"][0]
         img_path = self.img_path / img_name
@@ -106,10 +106,10 @@ class MultiModalData(DatamoduleBase):
             max_length=self.max_length,
         )
 
-    def _get_dataset(self, stage: str = "fit") -> Dataset:
+    def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         return self.dataset_cls(
             img_path=self.img_path,
-            data_path=self.train_path if stage == "fit" else self.test_path,
+            data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
         )
 
 

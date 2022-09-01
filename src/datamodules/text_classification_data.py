@@ -22,8 +22,8 @@ class TextDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, item: int) -> Any:
-        text, class_id = self.data.iloc[item]["text"], self.data.iloc[item]["label"]
+    def __getitem__(self, idx: int) -> Tuple[str, int]:
+        text, class_id = self.data.iloc[idx]["text"], self.data.iloc[idx]["label"]
         return text, class_id
 
 
@@ -71,9 +71,9 @@ class TextClassificationDatamodule(DatamoduleBase):
         self.tokenizer_name = tokenizer_name
         self.max_length = max_length
 
-    def _get_dataset(self, stage: str = "fit") -> Dataset:
+    def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         return TextDataset(
-            file_path=self.train_path if stage == "fit" else self.test_path,
+            file_path=self.train_path if stage == "fit" or stage is None else self.test_path,
         )
 
     def _get_collector(self) -> Any:
