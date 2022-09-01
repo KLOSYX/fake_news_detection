@@ -95,7 +95,7 @@ class BertSequenceClassification(pl.LightningModule):
 
     def forward_loss(self, tokens, class_ids):
         logits = self(tokens)
-        labels = F.one_hot(class_ids, num_classes=self.hparams.num_classes).to(torch.float)
+        labels = class_ids.to(torch.long)
         loss = self.criterion(logits, labels)
         return loss
 
