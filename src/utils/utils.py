@@ -83,6 +83,10 @@ def extras(cfg: DictConfig) -> None:
         log.info("Printing config tree with Rich! <cfg.extras.print_config=True>")
         rich_utils.print_config_tree(cfg, resolve=True, save_to_file=True)
 
+    if cfg.extras.get("save_shell_commands"):
+        log.info("Saving shell commands! <cfg.extras.save_shell_commands=True>")
+        rich_utils.save_shell_command(cfg)
+
 
 @rank_zero_only
 def save_file(path: str, content: str) -> None:

@@ -97,6 +97,16 @@ def enforce_tags(cfg: DictConfig, save_to_file: bool = False) -> None:
             rich.print(cfg.tags, file=file)
 
 
+@rank_zero_only
+def save_shell_command(cfg: DictConfig) -> None:
+    import sys
+
+    """Saves shell command used to launch the experiment to the output directory."""
+
+    with open(Path(cfg.paths.output_dir, "shell_command.log"), "w") as file:
+        rich.print(" ".join(sys.argv), file=file)
+
+
 if __name__ == "__main__":
     from hydra import compose, initialize
 
