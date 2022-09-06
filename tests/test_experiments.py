@@ -21,7 +21,7 @@ def get_train_experiment_cfgs() -> List[Tuple[str, DictConfig]]:
         with initialize(
             version_base="1.2", config_path="../configs", job_name="test_train_experiment"
         ):
-            experiment = str(config).split("experiment/")[-1]
+            experiment = "/".join(config.parts).split("experiment/")[-1]
             cfg = compose(
                 config_name="train.yaml",
                 return_hydra_config=True,

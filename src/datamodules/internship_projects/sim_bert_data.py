@@ -14,7 +14,7 @@ class SimSenDataset(Dataset):
         super().__init__()
         train_path = Path(train_path)
         assert train_path.exists(), "train_path must be a valid path!"
-        with open(train_path) as f:
+        with open(train_path, encoding="utf-8") as f:
             self.data = f.readlines()
         print("Train size", len(self.data))
 
