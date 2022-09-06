@@ -11,10 +11,12 @@ from src.datamodules.components.dm_base import DatamoduleBase
 
 
 class MultiModalDataset(Dataset):
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, img_root_dir: str):
         super().__init__()
         file_path = Path(file_path)
+        self.img_root_dir = Path(img_root_dir)
         assert file_path.exists(), "Data path not exists!"
+        assert self.img_root_dir.exists(), "Image path not exists!"
         data = pd.read_json(file_path, lines=True)
         data = data[data.img.apply(lambda x: x is not None and len(x) > 0)]
         data = data[["text", "img"]]
@@ -26,7 +28,7 @@ class MultiModalDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[str, Image.Image]:
         text, img_path = self.data.iloc[idx]["text"], self.data.iloc[idx]["img"]
-        raw_image = Image.open(img_path)
+        raw_image = Image.open(self.img_root_dir / img_path)
         return text, raw_image
 
 
@@ -38,9 +40,9 @@ class Collector:
         max_length: int = 200,
     ):
         super().__init__()
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="/data/.cache")
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="~/.cache")
         self.processor = (
-            AutoFeatureExtractor.from_pretrained(processor_name, cache_dir="/data/.cache")
+            AutoFeatureExtractor.from_pretrained(processor_name, cache_dir="~/.cache")
             if processor_name is not None
             else None
         )
@@ -68,6 +70,7 @@ class MultiModalDatamodule(DatamoduleBase):
         self,
         train_path: Optional[str] = None,
         test_path: Optional[str] = None,
+        img_root_dir: Optional[str] = None,
         tokenizer_name: str = "bert-base-chinese",
         processor_name: Optional[str] = None,
         max_length: int = 200,
@@ -82,13 +85,15 @@ class MultiModalDatamodule(DatamoduleBase):
         )
         self.train_path = train_path
         self.test_path = test_path
+        self.img_root_dir = img_root_dir
         self.tokenizer_name = tokenizer_name
         self.processor_name = processor_name
         self.max_length = max_length
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         return MultiModalDataset(
-            file_path=self.train_path if stage == "fit" or stage is None else self.test_path,
+            file_path=self.train_path if stage == "fit" else self.test_path,
+            img_root_dir=self.img_root_dir,
         )
 
     def _get_collector(self) -> Any:

@@ -1,0 +1,3 @@
+train_path: ${paths.root_dir}/tests/datamodule/sim_bert_data/data.txt
+test_path: ${paths.root_dir}/tests/datamodule/sim_bert_data/data.txt
+batch_size: 1

@@ -11,10 +11,8 @@ class ClipBase(nn.Module):
         bert_name="IDEA-CCNL/Taiyi-CLIP-Roberta-102M-Chinese",
     ) -> None:
         super().__init__()
-        self.clip = CLIPModel.from_pretrained(clip_name, cache_dir="/data/.cache")
-        self.bert = BertForSequenceClassification.from_pretrained(
-            bert_name, cache_dir="/data/.cache"
-        )
+        self.clip = CLIPModel.from_pretrained(clip_name, cache_dir="~/.cache")
+        self.bert = BertForSequenceClassification.from_pretrained(bert_name, cache_dir="~/.cache")
 
     def forward(self, text_encoded, img_encoded):
         img_features = self.clip.get_image_features(**img_encoded)

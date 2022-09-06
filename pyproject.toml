@@ -12,6 +12,7 @@ filterwarnings = [
 log_cli = "True"
 markers = [
   "slow: slow tests",
+  "local: local tests"
 ]
 minversion = "6.0"
 testpaths = "tests/"

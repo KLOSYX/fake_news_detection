@@ -17,7 +17,7 @@ class PureTextMlmPretrain(pl.LightningModule):
     ) -> None:
         super().__init__()
         # model
-        self.model = BertForMaskedLM.from_pretrained(bert_name, cache_dir="/data/.cache")
+        self.model = BertForMaskedLM.from_pretrained(bert_name, cache_dir="~/.cache")
         # metrics
         self.train_acc = torchmetrics.Accuracy(ignore_index=-100)
         self.val_acc = torchmetrics.Accuracy(ignore_index=-100)

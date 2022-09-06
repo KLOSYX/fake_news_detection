@@ -26,21 +26,15 @@ class VisualEncoderLMDecoder(nn.Module):
         super().__init__()
         if "clip" in visual_encoder:
             self.visual_encoder = CLIPVisionModel.from_pretrained(
-                visual_encoder, cache_dir="/data/.cache"
+                visual_encoder, cache_dir="~/.cache"
             )
         elif "deit" in visual_encoder:
-            self.visual_encoder = DeiTModel.from_pretrained(
-                visual_encoder, cache_dir="/data/.cache"
-            )
+            self.visual_encoder = DeiTModel.from_pretrained(visual_encoder, cache_dir="~/.cache")
         else:
-            self.visual_encoder = ViTModel.from_pretrained(
-                visual_encoder, cache_dir="/data/.cache"
-            )
+            self.visual_encoder = ViTModel.from_pretrained(visual_encoder, cache_dir="~/.cache")
         self.tokenizer = tokenizer
 
-        self.text_decoder_config = BertConfig.from_pretrained(
-            text_decoder, cache_dir="/data/.cache"
-        )
+        self.text_decoder_config = BertConfig.from_pretrained(text_decoder, cache_dir="~/.cache")
         self.text_decoder_config.is_decoder = True
         self.text_decoder_config.add_cross_attention = True
         # self.text_decoder_config.vocab_size = len(tokenizer)
@@ -150,16 +144,12 @@ class VisualEncoderMLMEncoder(nn.Module):
         super().__init__()
         if "clip" in visual_encoder:
             self.visual_encoder = CLIPVisionModel.from_pretrained(
-                visual_encoder, cache_dir="/data/.cache"
+                visual_encoder, cache_dir="~/.cache"
             )
         else:
-            self.visual_encoder = ViTModel.from_pretrained(
-                visual_encoder, cache_dir="/data/.cache"
-            )
+            self.visual_encoder = ViTModel.from_pretrained(visual_encoder, cache_dir="~/.cache")
 
-        self.text_decoder_config = BertConfig.from_pretrained(
-            text_decoder, cache_dir="/data/.cache"
-        )
+        self.text_decoder_config = BertConfig.from_pretrained(text_decoder, cache_dir="~/.cache")
         # add cross attention layers to interact with visual encoder
         self.text_decoder_config.is_decoder = True
         self.text_decoder_config.add_cross_attention = True
@@ -201,12 +191,8 @@ if __name__ == "__main__":
 
     # model = VisualEncoderLMDecoder()
     model = VisualEncoderMLMEncoder()
-    processor = CLIPProcessor.from_pretrained(
-        "openai/clip-vit-base-patch32", cache_dir="/data/.cache"
-    )
-    tokenizer = BertTokenizer.from_pretrained(
-        "hfl/chinese-roberta-wwm-ext", cache_dir="/data/.cache"
-    )
+    processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32", cache_dir="~/.cache")
+    tokenizer = BertTokenizer.from_pretrained("hfl/chinese-roberta-wwm-ext", cache_dir="~/.cache")
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, return_tensors="pt")
 
     url = "http://images.cocodataset.org/val2017/000000039769.jpg"

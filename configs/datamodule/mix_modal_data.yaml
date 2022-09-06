@@ -8,6 +8,7 @@ eda_prob: 0.5
 max_length: 200
 train_path: /data/clean_raw_text/dataset/street_train_eda_0.json
 test_path: /data/clean_raw_text/dataset/street_test.json
+img_root_dir: /data/clean_raw_text/dataset/street_img
 val_ratio: 0.1
 multimodal: False
 batch_size_per_gpu: 32

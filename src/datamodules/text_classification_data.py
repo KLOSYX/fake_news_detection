@@ -34,7 +34,7 @@ class Collector:
         max_length: int = 200,
     ):
         super().__init__()
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="/data/.cache")
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="~/.cache")
         self.max_length = max_length
 
     def __call__(self, data: List[Any]) -> Tuple[Any, torch.Tensor]:

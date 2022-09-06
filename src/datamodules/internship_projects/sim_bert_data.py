@@ -27,7 +27,7 @@ class SimSenDataset(Dataset):
 
 class Collector:
     def __init__(self, tokenizer_name: str, max_length: int = 128) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="/data/.cache")
+        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="~/.cache")
         self.max_length = max_length
 
     def __call__(self, data: List[List[str]]) -> Any:

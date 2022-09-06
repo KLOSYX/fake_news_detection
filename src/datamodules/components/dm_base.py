@@ -33,8 +33,9 @@ class DatamoduleBase(pl.LightningDataModule):
         self.collector = self._get_collector()
         if stage == "fit" or stage is None:
             dataset = self._get_dataset(stage)
-            val_size = int(len(dataset) * self.val_ratio)
+            val_size = max(int(len(dataset) * self.val_ratio), 1)
             train_size = len(dataset) - val_size
+            assert train_size >= 1 and val_size >= 1, "Train size or val size is smaller than 1!"
             print("Train size", train_size, "Val size", val_size)
             self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
 

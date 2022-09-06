@@ -15,7 +15,7 @@ defaults:
 
 tags: ["dept_dist", "district", "classify"]
 monitor: val/accuracy_top_1
-bert_name_or_path: /data/teamwork/multimodal/pretrained_models/chinese-roberta-gov-affairs-wwm
+bert_name_or_path: hfl/chinese-roberta-wwm-ext
 
 test: True
 

@@ -8,6 +8,7 @@ from transformers import BatchEncoding, BatchFeature
 from src.datamodules.multi_modal_data import MultiModalDatamodule
 
 
+@pytest.mark.local
 @pytest.mark.parametrize("batch_size", [32, 128])
 def test_multi_modal_data(batch_size):
     # check data path

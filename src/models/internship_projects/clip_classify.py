@@ -15,8 +15,8 @@ from sklearn.metrics import confusion_matrix
 from transformers import get_constant_schedule_with_warmup
 
 from src.models.components.clip_base import ClipBase
-from src.utils.focal_loss import FocalLoss
-from src.utils.plot_confusion_matrix import plot_confusion_matrix
+from src.utils.loss.focal_loss import FocalLoss
+from src.utils.metric.plot_confusion_matrix import plot_confusion_matrix
 
 
 class ClipClassify(pl.LightningModule):

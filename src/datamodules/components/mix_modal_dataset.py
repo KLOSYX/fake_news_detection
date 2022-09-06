@@ -67,6 +67,7 @@ class MixModalDataset:
     def __init__(
         self,
         file_path,
+        img_root_dir,
         stage="fit",
         image_size=224,
         multimodal=False,
@@ -77,6 +78,7 @@ class MixModalDataset:
         only_img=False,
     ):
         file_path = Path(file_path)
+        self.img_root_dir = Path(img_root_dir) if isinstance(img_root_dir, str) else None
         if not file_path.exists():
             raise FileNotFoundError(f"{file_path} not found!")
         self.data = pd.read_json(file_path, lines=True)
@@ -133,7 +135,7 @@ class MixModalDataset:
             if self.multimodal:
                 img_name = sample["img"]
                 if img_name:
-                    img = Image.open(img_name)
+                    img = Image.open(self.img_root_dir / img_name)
                     valid_img = True
                 else:
                     # dummy image, will be masked during training

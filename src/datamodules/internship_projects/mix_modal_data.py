@@ -197,19 +197,18 @@ class MixModalData(pl.LightningDataModule):
         eda=False,
         eda_prob=0.5,
         only_img=False,
+        img_root_dir=None,
         **args
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
         self.visual_processor = (
-            AutoFeatureExtractor.from_pretrained(
-                self.hparams.visual_encoder, cache_dir="/data/.cache"
-            )
+            AutoFeatureExtractor.from_pretrained(self.hparams.visual_encoder, cache_dir="~/.cache")
             if multimodal
             else None
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.hparams.tokenizer_name, cache_dir="/data/.cache"
+            self.hparams.tokenizer_name, cache_dir="~/.cache"
         )
         self.processor = Processor(
             self.visual_processor,
@@ -223,6 +222,7 @@ class MixModalData(pl.LightningDataModule):
         if stage is None or stage == "fit":
             data = MixModalDataset(
                 self.hparams.train_path,
+                self.hparams.img_root_dir,
                 stage=stage,
                 multimodal=self.visual_processor is not None,
                 mlm=self.hparams.mlm,
@@ -242,6 +242,7 @@ class MixModalData(pl.LightningDataModule):
         if stage is None or stage == "test":
             self.test_dataset = MixModalDataset(
                 self.hparams.test_path,
+                self.hparams.img_root_dir,
                 stage=stage,
                 multimodal=self.visual_processor is not None,
                 mlm=self.hparams.mlm,

@@ -1,0 +1,3 @@
+train_path: ${paths.root_dir}/tests/datamodule/text_classification_data/data.json
+test_path: ${paths.root_dir}/tests/datamodule/text_classification_data/data.json
+batch_size: 1

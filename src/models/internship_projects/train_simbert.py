@@ -43,11 +43,9 @@ class TrainSimBert(pl.LightningModule):
     ) -> None:
         super().__init__()
         # model
-        config = BertConfig.from_pretrained(bert_name, cache_dir="/data/.cache")
+        config = BertConfig.from_pretrained(bert_name, cache_dir="~/.cache")
         config.vector_dim = vector_dim
-        self.model = SimBertModel.from_pretrained(
-            bert_name, config=config, cache_dir="/data/.cache"
-        )
+        self.model = SimBertModel.from_pretrained(bert_name, config=config, cache_dir="~/.cache")
         # loss
         self.criterion = SimilarityLoss(logit_scale=logit_scale, label_smoothing=label_smoothing)
         # hyperparameters

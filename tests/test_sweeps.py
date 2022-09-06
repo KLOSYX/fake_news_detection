@@ -14,6 +14,7 @@ overrides = [
 
 
 @RunIf(sh=True)
+@pytest.mark.local
 @pytest.mark.slow
 def test_experiments(tmp_path):
     """Test running all available experiment configs with fast_dev_run=True."""

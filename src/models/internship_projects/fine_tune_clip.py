@@ -45,9 +45,9 @@ class CLIP(pl.LightningModule):
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
-        self.clip_model = CLIPModel.from_pretrained(clip_name, cache_dir="/data/.cache")
+        self.clip_model = CLIPModel.from_pretrained(clip_name, cache_dir="~/.cache")
         self.text_encoder = BertForSequenceClassification.from_pretrained(
-            text_encoder_name, cache_dir="/data/.cache"
+            text_encoder_name, cache_dir="~/.cache"
         )
         self.criterion = Loss()
         self.val_best = torchmetrics.MinMetric()
