@@ -1,8 +1,5 @@
-from typing import Optional, Tuple, Union
-
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from einops import repeat
 from med import BertForMaskedLM, BertLMHeadModel
 from transformers import (

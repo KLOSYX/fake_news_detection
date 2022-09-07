@@ -134,6 +134,8 @@ class CLIP(pl.LightningModule):
         loss = self.forward_loss(batch)
         self.log("test/loss", loss, sync_dist=True)
 
+        return None
+
 
 if __name__ == "__main__":
     import pyrootutils

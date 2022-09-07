@@ -140,7 +140,7 @@ class SimBertModel(BertPreTrainedModel):
         labels: Optional[torch.Tensor] = None,
         output_attentions: Optional[bool] = None,
         return_dict: Optional[bool] = None,
-    ) -> Tuple[Union[torch.Tensor, CausalLMOutputWithCrossAttentions]]:
+    ) -> Tuple[Union[torch.Tensor, CausalLMOutputWithCrossAttentions], torch.Tensor]:
         forward_output = self.forward(
             input_ids=input_ids,
             attention_mask=attention_mask,

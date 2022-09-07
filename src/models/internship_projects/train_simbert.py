@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import pytorch_lightning as pl
 import torch
@@ -18,12 +18,14 @@ class SimilarityLoss(nn.Module):
         self.label_smoothing = label_smoothing
 
     def forward(self, vectors: torch.Tensor) -> torch.Tensor:
-        batch_size = vectors.size(0)
-        labels = torch.arange(batch_size, device=vectors.device)
+        batch_size: int = vectors.size(0)
+        labels: torch.Tensor = torch.arange(batch_size, device=vectors.device)
         labels[::2] = labels[::2] + 1
         labels[1::2] = labels[1::2] - 1
-        norm_vector = F.normalize(vectors, dim=1)  # (N, vector_dim)
-        similarity = torch.matmul(norm_vector, norm_vector.t()) * self.logit_scale  # (N, N)
+        norm_vector: torch.Tensor = F.normalize(vectors, dim=1)  # (N, vector_dim)
+        similarity: torch.Tensor = (
+            torch.matmul(norm_vector, norm_vector.t()) * self.logit_scale
+        )  # (N, N)
         similarity.fill_diagonal_(torch.finfo(similarity.dtype).min)
         similarity = F.softmax(similarity, dim=1)
         loss = F.cross_entropy(similarity, labels, label_smoothing=self.label_smoothing)
@@ -53,7 +55,7 @@ class TrainSimBert(pl.LightningModule):
         self.weight_decay = weight_decay
         self.num_warmup_steps = num_warmup_steps
 
-    def forward(self, inputs: Dict) -> torch.Tensor:
+    def forward(self, inputs: Dict) -> Tuple[torch.Tensor, torch.Tensor]:
         outputs, vector = self.model.forward_vector(**inputs)
         gen_loss = outputs.loss
         all_vector = self.all_gather(vector, sync_grads=True)
@@ -101,6 +103,8 @@ class TrainSimBert(pl.LightningModule):
             {"val/gen_loss": gen_loss, "val/sim_loss": sim_loss, "val/loss": loss},
             sync_dist=True,
         )
+
+        return None
 
 
 if __name__ == "__main__":

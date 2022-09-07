@@ -124,6 +124,8 @@ class DistClassify(pl.LightningModule):
                 fig = plot_confusion_matrix(cm, target_names=text_labels, normalize=False)
                 self.logger.log_image(key="confusion_matrix", images=[fig])
 
+        return None
+
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         tokens, labels = batch
         logits = self(tokens)
@@ -131,3 +133,5 @@ class DistClassify(pl.LightningModule):
         self.log_dict({"test/loss": loss}, sync_dist=True)
         self.log_dict(self.test_acc(logits, labels), sync_dist=True)
         # self.log_dict(self.val_f1_score(logits, labels))
+
+        return None

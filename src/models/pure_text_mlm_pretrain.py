@@ -62,3 +62,4 @@ class PureTextMlmPretrain(pl.LightningModule):
             {"val_loss": loss, "val_acc": self.val_acc(predictions, tokens.labels)},
             sync_dist=True,
         )
+        return None

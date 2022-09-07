@@ -130,6 +130,7 @@ class BertSequenceClassification(pl.LightningModule):
         self.log_dict({"val/loss": loss}, sync_dist=True)
         self.log_dict(self.val_acc(logits, class_ids), sync_dist=True)
         # self.log_dict(self.val_f1_score(logits, labels))
+        return None
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.val_best.update(self.val_acc.compute()["val/accuracy_top_1"])
@@ -143,6 +144,7 @@ class BertSequenceClassification(pl.LightningModule):
         self.log_dict({"test/loss": loss}, sync_dist=True)
         self.log_dict(self.test_acc(logits, class_ids), sync_dist=True)
         # self.log_dict(self.val_f1_score(logits, labels))
+        return None
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.test_acc.reset()
