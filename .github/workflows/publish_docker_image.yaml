@@ -21,7 +21,7 @@ jobs: # workflow中的job
       - name: Docker Build & Push Action
         uses: mr-smithers-excellent/docker-build-push@v5.6
         with:
-          image: anbinx/nv-torch-env
+          image: anbinx/fake_news_detection_env
           registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWD }}
