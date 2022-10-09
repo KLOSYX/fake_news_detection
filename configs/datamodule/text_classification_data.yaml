@@ -1,9 +1,0 @@
-_target_: src.datamodules.text_classification_data.TextClassificationDatamodule
-
-train_path: /data/proj/henyang/dataset/kb_classification_train_data.json
-test_path: /data/proj/henyang/dataset/kb_classification_train_data.json
-tokenizer_name: hfl/chinese-roberta-wwm-ext
-max_length: 200
-val_ratio: 0.2
-batch_size: 32
-num_workers: 32

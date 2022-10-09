@@ -1,4 +1,0 @@
-train_path: ${paths.root_dir}/tests/datamodule/mix_modal_data/data.json
-test_path: ${paths.root_dir}/tests/datamodule/mix_modal_data/data.json
-img_root_dir: ${paths.root_dir}/tests/datamodule/mix_modal_data
-batch_size_per_gpu: 1

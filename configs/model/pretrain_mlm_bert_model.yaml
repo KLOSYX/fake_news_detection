@@ -1,5 +1,0 @@
-_target_: src.models.pure_text_mlm_pretrain.PureTextMlmPretrain
-
-bert_name: hfl/chinese-macbert-base
-num_warmup_steps: 0
-lr: 0.0001
