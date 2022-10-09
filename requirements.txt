@@ -32,5 +32,8 @@ wandb == 0.13.4
 pyrootutils
 pytest
 pre-commit
-rich
+rich~=12.5.1
+opencv-python-headless
 # sh    # for running bash commands in some tests (linux/macos only)
+
+sh~=1.14.3
