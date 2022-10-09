@@ -9,7 +9,7 @@ hydra-colorlog == 1.2.0
 hydra-optuna-sweeper == 1.2.0
 jieba == 0.42.1
 kiwisolver == 1.4.4
-matplotlib == 3.6.0
+matplotlib == 3.6.1
 numpy == 1.23.3
 omegaconf == 2.2.3
 packaging == 21.3
