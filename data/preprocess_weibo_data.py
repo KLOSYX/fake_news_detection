@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 import re
+from pathlib import Path
 
 import cv2
 import pandas as pd
@@ -9,17 +9,12 @@ from tqdm import tqdm
 
 root = pyrootutils.setup_root(".")
 
-"""
-refine images
-"""
-
 
 def clean_str_sst(string: str):
-    """
-    Tokenization/string cleaning for the SST dataset
-    """
-    string = re.sub(u"[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "", string)
+    """Tokenization/string cleaning for the SST dataset."""
+    string = re.sub("[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "", string)
     return string.strip().lower()
+
 
 def refine_images(root_dir: Path, path: Path):
     if not root_dir.exists():
@@ -117,9 +112,7 @@ def main():
     dfs = [pd.read_json(file, lines=True) for file in json_file_list]
 
     for df in dfs:
-        df["imgs"] = df.imgs.apply(
-            lambda x: check_valid_image(save_path, x)
-        )
+        df["imgs"] = df.imgs.apply(lambda x: check_valid_image(save_path, x))
 
     for df in dfs:
         df["title"] = df.title.apply(lambda x: clean_str_sst("".join(x)))
@@ -140,10 +133,16 @@ def main():
     )
 
     train_data_with_img.to_json(
-        root / "data/MM17-WeiboRumorSet/train_data.json", lines=True, orient="records", force_ascii=False
+        root / "data/MM17-WeiboRumorSet/train_data.json",
+        lines=True,
+        orient="records",
+        force_ascii=False,
     )
     test_data_with_img.to_json(
-        root / "data/MM17-WeiboRumorSet/test_data.json", lines=True, orient="records", force_ascii=False
+        root / "data/MM17-WeiboRumorSet/test_data.json",
+        lines=True,
+        orient="records",
+        force_ascii=False,
     )
 
 
