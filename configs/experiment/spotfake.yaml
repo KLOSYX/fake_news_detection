@@ -7,7 +7,7 @@ defaults:
   - override /datamodule: fake_news_data.yaml
   - override /model: spotfake_model.yaml
   - override /callbacks: default.yaml
-  - override /trainer: deepspeed.yaml
+  - override /trainer: gpu.yaml
   - override /logger: wandb.yaml
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -25,8 +25,8 @@ trainer:
   min_epochs: 0
   max_epochs: 50
   gradient_clip_val: 0
-  devices: 4
-  precision: 32
+  devices: 1
+  precision: 16
   log_every_n_steps: 10
 
 logger:
@@ -52,6 +52,6 @@ model:
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}
-  num_workers: 32
-  batch_size: 64
+  num_workers: 1
+  batch_size: 8
   val_set_ratio: 0.2
