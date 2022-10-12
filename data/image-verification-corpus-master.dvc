@@ -1,5 +1,5 @@
 outs:
-- md5: 2155b77c5a45fe6c65717727e0327d45.dir
-  size: 801916114
-  nfiles: 613
+- md5: 0376ec359e8b73e8e256f51adcbbbc30.dir
+  size: 873231092
+  nfiles: 1549
   path: image-verification-corpus-master
