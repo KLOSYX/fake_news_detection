@@ -25,7 +25,7 @@ torchmetrics == 0.10.0
 torchvision == 0.13.1
 torchtext == 0.13.1
 tqdm == 4.64.1
-transformers == 4.23.0
+transformers == 4.23.1
 wandb == 0.13.4
 
 # --------- others --------- #
