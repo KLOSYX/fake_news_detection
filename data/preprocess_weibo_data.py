@@ -1,11 +1,10 @@
 import json
 import re
 from pathlib import Path
-import pickle
 
-from PIL import Image
 import pandas as pd
 import pyrootutils
+from PIL import Image
 from tqdm import tqdm
 
 root = pyrootutils.setup_root(".")
@@ -28,7 +27,7 @@ def refine_images(root_dir: Path, path: Path):
         else:
             save_path = root_dir / (path.stem + path.suffix)
             with save_path.open("wb") as f:
-            #     pickle.dump(image, f)
+                #     pickle.dump(image, f)
                 image.save(f)
     except Exception as e:
         print(e)

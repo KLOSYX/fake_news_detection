@@ -44,8 +44,8 @@ class WeiboDataset(Dataset):
             self.transforms(img).unsqueeze(0),
             torch.tensor([label], dtype=torch.long),
         )
-        
-        
+
+
 class TwitterDataset(WeiboDataset):
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
