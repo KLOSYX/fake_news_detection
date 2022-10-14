@@ -35,7 +35,7 @@ class WeiboDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["title"]
-        img_name = self.data.iloc[idx]["imgs"][0]
+        img_name = self.data.iloc[idx]["imgs"]
         img_path = self.img_path / img_name
         img = Image.open(img_path).convert("RGB")
         label = self.data.iloc[idx]["label"]
@@ -49,7 +49,7 @@ class WeiboDataset(Dataset):
 class TwitterDataset(WeiboDataset):
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
-        img_name = self.data.iloc[idx]["imgs"][0]
+        img_name = self.data.iloc[idx]["imgs"]
         img_path = self.img_path / img_name
         img = Image.open(img_path).convert("RGB")
         label = self.data.iloc[idx]["label"]

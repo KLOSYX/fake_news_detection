@@ -8,6 +8,7 @@ from PIL import Image
 from tqdm import tqdm
 
 root = pyrootutils.setup_root(".")
+pd.options.mode.chained_assignment = None  # default='warn'
 
 
 def clean_str_sst(string: str):
@@ -126,7 +127,12 @@ def main():
     print("train length:", len(train_data), "test length:", len(test_data))
 
     train_data_with_img = train_data[train_data.imgs.apply(len) > 0]
+    train_data_with_img["imgs"] = train_data_with_img.imgs.apply(lambda x: x[0])
+    train_data_with_img = train_data_with_img.drop_duplicates(subset=["title", "imgs"])
+
     test_data_with_img = test_data[test_data.imgs.apply(len) > 0]
+    test_data_with_img["imgs"] = test_data_with_img.imgs.apply(lambda x: x[0])
+    test_data_with_img = test_data_with_img.drop_duplicates(subset=["title", "imgs"])
 
     print(
         "train length with image:",

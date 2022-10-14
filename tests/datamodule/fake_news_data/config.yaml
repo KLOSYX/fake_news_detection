@@ -1,4 +1,0 @@
-train_path: ${paths.root_dir}/tests/datamodule/fake_news_data/data.json
-test_path: ${paths.root_dir}/tests/datamodule/fake_news_data/data.json
-img_path: ${paths.root_dir}/tests/datamodule/fake_news_data
-batch_size: 1
