@@ -37,7 +37,21 @@ class WeiboDataset(Dataset):
         text = self.data.iloc[idx]["title"]
         img_name = self.data.iloc[idx]["imgs"][0]
         img_path = self.img_path / img_name
-        img = Image.open(img_path)
+        img = Image.open(img_path).convert("RGB")
+        label = self.data.iloc[idx]["label"]
+        return (
+            text,
+            self.transforms(img).unsqueeze(0),
+            torch.tensor([label], dtype=torch.long),
+        )
+
+
+class TwitterDataset(WeiboDataset):
+    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
+        text = self.data.iloc[idx]["text"]
+        img_name = self.data.iloc[idx]["imgs"][0]
+        img_path = self.img_path / img_name
+        img = Image.open(img_path).convert("RGB")
         label = self.data.iloc[idx]["label"]
         return (
             text,
@@ -96,6 +110,8 @@ class MultiModalData(DatamoduleBase):
         self.max_length = max_length
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
+        elif dataset_name == "twitter":
+            self.dataset_cls = TwitterDataset
 
     def _get_collector(self) -> Any:
         return Collector(

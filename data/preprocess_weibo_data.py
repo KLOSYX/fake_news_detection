@@ -2,9 +2,9 @@ import json
 import re
 from pathlib import Path
 
-import cv2
 import pandas as pd
 import pyrootutils
+from PIL import Image
 from tqdm import tqdm
 
 root = pyrootutils.setup_root(".")
@@ -20,12 +20,15 @@ def refine_images(root_dir: Path, path: Path):
     if not root_dir.exists():
         root_dir.mkdir(parents=True)
     try:
-        image = cv2.imread(str(path), cv2.IMREAD_COLOR)
-        if min(image.shape[:2]) < 100:
+        # image = cv2.imread(str(path), cv2.IMREAD_COLOR)
+        image = Image.open(str(path)).convert("RGB")
+        if min(image.size) < 100:
             return ""
         else:
-            save_path = root_dir / (path.stem + ".jpg")
-            cv2.imwrite(str(save_path), image)
+            save_path = root_dir / (path.stem + path.suffix)
+            with save_path.open("wb") as f:
+                #     pickle.dump(image, f)
+                image.save(f)
     except Exception as e:
         print(e)
         save_path = ""
@@ -63,8 +66,8 @@ def main():
     for directory in target_directories:
         directory = Path(directory)
         for path in tqdm(directory.glob("*"), desc=f"refine images in {directory}"):
-            if path.suffix in [".gif"]:
-                continue
+            # if path.suffix in [".gif"]:
+            #     continue
             old2new[str(path)] = refine_images(save_path, path)
     # with open("old2new.txt", "w") as f:
     #     for old, new in old2new.items():

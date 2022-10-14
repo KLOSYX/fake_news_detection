@@ -74,7 +74,7 @@ class SpotFake(FakeNewsBase):
         if self.hparams.pooler == "pooler_output":
             bert_out = self.bert(**text_encodeds).pooler_output
         else:
-            bert_out = []
+            # bert_out = []
             attention_mask: torch.Tensor = text_encodeds.attention_mask  # [N, L]
             sequence_out: torch.Tensor = self.bert(**text_encodeds).last_hidden_state  # [N, L, d]
             input_mask_expanded: torch.Tensor = (
@@ -84,8 +84,9 @@ class SpotFake(FakeNewsBase):
             sum_embed = reduce(t, "N L d -> N d", "sum")
             sum_mask = reduce(input_mask_expanded, "N L d -> N d", "sum")
             sum_mask = torch.clamp(sum_mask, min=1e-9)  # make sure not divided by zero
-            bert_out.append(sum_embed / sum_mask)
-            bert_out = torch.cat(bert_out, dim=1)
+            # bert_out.append(sum_embed / sum_mask)
+            # bert_out = torch.cat(bert_out, dim=1)
+            bert_out = sum_embed / sum_mask
 
         # visual encoding
         x1 = self.img_fc1(vgg_out)
