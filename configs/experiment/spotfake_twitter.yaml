@@ -15,7 +15,7 @@ defaults:
 
 tags: ["fakenews", "multimodal", "classify"]
 monitor: val/accuracy
-bert_name_or_path: bert-base-multilingual-cased
+bert_name_or_path: bert-base-uncased
 
 test: True
 
