@@ -7,7 +7,6 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 from transformers import AutoFeatureExtractor, AutoTokenizer
-from pathlib import Path
 
 from src.datamodules.components.dm_base import DatamoduleBase
 
