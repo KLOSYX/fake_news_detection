@@ -23,7 +23,7 @@ seed: 42
 
 trainer:
   min_epochs: 0
-  max_epochs: 50
+  max_epochs: 10
   gradient_clip_val: 0
   devices: 1
   precision: 16
@@ -44,11 +44,11 @@ callbacks:
     patience: 5
 
 model:
-  lr: 0.0001
+  lr: 0.0005
   bert_name: ${bert_name_or_path}
   dropout_prob: 0.4
   weight_decay: 0.05
-  num_warmup_steps: 0
+  num_warmup_steps: 400
 
 datamodule:
   tokenizer_name: ${bert_name_or_path}

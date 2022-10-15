@@ -7,6 +7,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 from transformers import AutoFeatureExtractor, AutoTokenizer
+from pathlib import Path
 
 from src.datamodules.components.dm_base import DatamoduleBase
 
@@ -64,7 +65,7 @@ class Collector:
     def __init__(self, tokenizer: Any, processor: Optional[str], max_length: int = 200) -> None:
         self.tokenizer = tokenizer
         self.processor = (
-            AutoFeatureExtractor.from_pretrained(processor, cache_dir="~/.cache")
+            AutoFeatureExtractor.from_pretrained(processor, cache_dir=Path.home() / ".cache")
             if processor is not None
             else None
         )

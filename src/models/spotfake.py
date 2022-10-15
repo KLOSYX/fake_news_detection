@@ -27,7 +27,13 @@ class SpotFake(FakeNewsBase):
         ], "pooler must be one of [cls_token, avg_pool]"
 
         super().__init__()
-        self.save_hyperparameters()
+
+        # hyper parameters
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.num_warmup_steps = num_warmup_steps
+        self.pooler = pooler
+
         bert_config = BertConfig.from_pretrained(bert_name, cache_dir=Path.home() / ".cache")
         # model
         self.bert = BertModel.from_pretrained(
@@ -64,14 +70,15 @@ class SpotFake(FakeNewsBase):
         self._freeze(self.bert)
 
     @staticmethod
-    def _freeze(module):
+    def _freeze(module, verbose=False):
         for n, p in module.named_parameters():
             p.requires_grad = False
-            print("freeze", n)
+            if verbose:
+                print("freeze", n)
 
     def forward(self, text_encodeds, img_encodeds):
         vgg_out = self.vgg_model(img_encodeds)
-        if self.hparams.pooler == "pooler_output":
+        if self.pooler == "pooler_output":
             bert_out = self.bert(**text_encodeds).pooler_output
         else:
             # bert_out = []
@@ -111,11 +118,19 @@ class SpotFake(FakeNewsBase):
         return logits
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(
-            self.parameters(),
-            lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay,
-        )
+        param_optimizer = list(self.named_parameters())
+        no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
+        optimizer_grouped_parameters = [
+            {
+                "params": [p for n, p in param_optimizer if not any(n_d in n for n_d in no_decay)],
+                "weight_decay": self.hparams.weight_decay,
+            },
+            {
+                "params": [p for n, p in param_optimizer if any(n_d in n for n_d in no_decay)],
+                "weight_decay": 0.0,
+            },
+        ]
+        optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=self.hparams.lr)
         scheduler = get_constant_schedule_with_warmup(
             optimizer=optimizer, num_warmup_steps=self.hparams.num_warmup_steps
         )
