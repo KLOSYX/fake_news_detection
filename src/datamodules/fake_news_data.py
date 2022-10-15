@@ -64,7 +64,7 @@ class Collector:
     def __init__(self, tokenizer: Any, processor: Optional[str], max_length: int = 200) -> None:
         self.tokenizer = tokenizer
         self.processor = (
-            AutoFeatureExtractor.from_pretrained(processor, cache_dir="~/.cache")
+            AutoFeatureExtractor.from_pretrained(processor, cache_dir=Path.home() / ".cache")
             if processor is not None
             else None
         )
