@@ -2,6 +2,7 @@ import pickle
 import re
 import time
 from pathlib import Path
+from typing import List, Dict
 
 import pandas as pd
 import pyrootutils
@@ -104,7 +105,7 @@ def refine_images(root_dir: Path, path: Path):
     return str(save_path)
 
 
-def check_valid_image(img_root_dir: Path, img_id_list: list):
+def check_valid_image(img_dict: Dict, img_id_list: list) -> List[str]:
     valid_img_list = []
     for img_id in img_id_list:
         img_id = img_id.strip()
@@ -159,7 +160,6 @@ if __name__ == "__main__":
         img_save_path.mkdir(parents=True)
 
     for img_path in img_path_list:
-        img_path = Path(img_path)
         cnt = 0
         for f in tqdm(img_path.glob("*"), desc=f"Refining images in {str(img_path)}"):
             if f.suffix in [".txt"]:
@@ -175,11 +175,8 @@ if __name__ == "__main__":
     img_dict = {x.split("/")[-1].split(".")[0]: x for x in img_list}
 
     # %%
-    dev_data.post_text.apply(lambda x: len(x)).hist()
-
-    # %%
     dev_data["imgs"] = dev_data["image_id(s)"].apply(
-        lambda x: check_valid_image(img_save_path, x.split(","))
+        lambda x: check_valid_image(img_dict, x.split(","))
     )
 
     translated_train_data = pickle.load(
@@ -195,7 +192,7 @@ if __name__ == "__main__":
     dev_data["lang"] = dev_data.text.progress_apply(lambda x: detection_lang(x))
 
     test_data["imgs"] = test_data["image_id"].apply(
-        lambda x: check_valid_image(img_save_path, x.split(","))
+        lambda x: check_valid_image(img_dict, x.split(","))
     )
     test_data["text"] = test_data.post_text.apply(lambda x: clean_text(x))
     test_data = test_data[test_data.text.apply(lambda x: len(x) > 0)]
