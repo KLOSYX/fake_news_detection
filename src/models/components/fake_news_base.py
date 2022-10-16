@@ -15,17 +15,29 @@ class FakeNewsBase(pl.LightningModule):
         self.test_metrics = metrics.clone(prefix="test/")
 
     def _get_metrics(
-            self,
+        self,
     ):
         metric_collection = torchmetrics.MetricCollection(
             dict(
                 accuracy=torchmetrics.classification.Accuracy(),
-                fake_precision=torchmetrics.classification.Precision(ignore_index=0, multiclass=True, num_classes=2),
-                fake_recall=torchmetrics.classification.Recall(ignore_index=0, multiclass=True, num_classes=2),
-                fake_f1score=torchmetrics.classification.F1Score(ignore_index=0, multiclass=True, num_classes=2),
-                real_precision=torchmetrics.classification.Precision(ignore_index=1, multiclass=True, num_classes=2),
-                real_recall=torchmetrics.classification.Recall(ignore_index=1, multiclass=True, num_classes=2),
-                real_f1score=torchmetrics.classification.F1Score(ignore_index=1, multiclass=True, num_classes=2),
+                fake_precision=torchmetrics.classification.Precision(
+                    ignore_index=0, multiclass=True, num_classes=2
+                ),
+                fake_recall=torchmetrics.classification.Recall(
+                    ignore_index=0, multiclass=True, num_classes=2
+                ),
+                fake_f1score=torchmetrics.classification.F1Score(
+                    ignore_index=0, multiclass=True, num_classes=2
+                ),
+                real_precision=torchmetrics.classification.Precision(
+                    ignore_index=1, multiclass=True, num_classes=2
+                ),
+                real_recall=torchmetrics.classification.Recall(
+                    ignore_index=1, multiclass=True, num_classes=2
+                ),
+                real_f1score=torchmetrics.classification.F1Score(
+                    ignore_index=1, multiclass=True, num_classes=2
+                ),
             ),
         )
         return metric_collection
