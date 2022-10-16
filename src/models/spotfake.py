@@ -21,6 +21,10 @@ class SpotFake(FakeNewsBase):
         dropout_prob=0.0,
         bert_name: str = "bert-base-chinese",
         pooler: str = "cls_token",
+        num_visual_hidden_layers=1,
+        visual_hidden_size=2742,
+        num_text_hidden_layers=1,
+        text_hidden_size=768,
     ) -> None:
         assert pooler in [
             "cls_token",
@@ -49,7 +53,8 @@ class SpotFake(FakeNewsBase):
         # fcs
         self.img_fc1 = nn.Linear(self.vgg_model.classifier[6].in_features, 2742)
         self.img_fc2 = nn.Linear(2742, 32)
-        self.text_fc1 = nn.Linear(self.bert.config.hidden_size, 32)
+        self.text_fc1 = nn.Linear(self.bert.config.hidden_size, 768)
+        self.text_fc2 = nn.Linear(768, 32)
         self.fc = nn.Linear(64, 35)
         self.classifier = nn.Linear(35, 1)
 
@@ -98,21 +103,24 @@ class SpotFake(FakeNewsBase):
 
         # visual encoding
         x1 = self.img_fc1(vgg_out)
-        x1 = self.dropout(x1)
         x1 = self.act(x1)
-        x1 = self.img_fc2(x1)
         x1 = self.dropout(x1)
-        x1 = self.act(x1)  # (N, 32)
+        x1 = self.img_fc2(x1)
+        x1 = self.act(x1)
+        # x1 = self.dropout(x1)  # (N, 32)
 
         # text encoding
         x2 = self.text_fc1(bert_out)
-        x2 = self.dropout(x2)
-        x2 = self.act(x2)  # (N, 32)
+        x2 = self.act(x2)
+        x2 = self.dropout(x2)  # (N, 768)
+        x2 = self.text_fc2(x2)
+        x2 = self.act(x2)
+        # x2 = self.dropout(x2)  # (N, 32)
 
         # multimodal repr
         x = torch.cat([x1, x2], dim=1)  # (N, 64)
-        x = self.fc(x)
         x = self.dropout(x)
+        x = self.fc(x)
         x = self.act(x)
         logits = self.classifier(x)  # (N, 1)
         logits = logits.squeeze(-1)  # (N,)

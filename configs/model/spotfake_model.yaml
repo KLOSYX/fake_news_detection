@@ -5,4 +5,4 @@ weight_decay: 0.05
 num_warmup_steps: 700
 dropout_prob: 0
 bert_name: bert-base-chinese
-pooler: avg_pool
+pooler: cls_token
