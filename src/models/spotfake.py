@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 from einops import reduce
 from torch import nn
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
@@ -50,14 +51,14 @@ class SpotFake(FakeNewsBase):
         self.img_fc2 = nn.Linear(2742, 32)
         self.text_fc1 = nn.Linear(self.bert.config.hidden_size, 32)
         self.fc = nn.Linear(64, 35)
-        self.classifier = nn.Linear(35, 2)
+        self.classifier = nn.Linear(35, 1)
 
         # pooler
         if pooler == "avg_pool":
             self.pool = nn.AdaptiveAvgPool1d(1)
 
         # loss function
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.BCEWithLogitsLoss()
 
         # modify the last fc layer of vgg
         new_classifier = nn.Sequential(*list(self.vgg_model.children())[-1][:6])
@@ -113,7 +114,8 @@ class SpotFake(FakeNewsBase):
         x = self.fc(x)
         x = self.dropout(x)
         x = self.act(x)
-        logits = self.classifier(x)  # (N, 2)
+        logits = self.classifier(x)  # (N, 1)
+        logits = logits.squeeze(-1)  # (N,)
 
         return logits
 
@@ -123,15 +125,15 @@ class SpotFake(FakeNewsBase):
         optimizer_grouped_parameters = [
             {
                 "params": [p for n, p in param_optimizer if not any(n_d in n for n_d in no_decay)],
-                "weight_decay": self.hparams.weight_decay,
+                "weight_decay": self.weight_decay,
             },
             {
                 "params": [p for n, p in param_optimizer if any(n_d in n for n_d in no_decay)],
                 "weight_decay": 0.0,
             },
         ]
-        optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=self.hparams.lr)
+        optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=self.lr)
         scheduler = get_constant_schedule_with_warmup(
-            optimizer=optimizer, num_warmup_steps=self.hparams.num_warmup_steps
+            optimizer=optimizer, num_warmup_steps=self.num_warmup_steps
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
