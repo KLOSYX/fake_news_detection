@@ -54,4 +54,4 @@ datamodule:
   tokenizer_name: ${bert_name_or_path}
   num_workers: 1
   batch_size: 8
-  val_set_ratio: 0.2
+  val_set_ratio: 0.1
