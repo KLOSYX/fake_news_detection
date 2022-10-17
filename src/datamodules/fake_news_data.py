@@ -58,8 +58,8 @@ class TwitterDataset(WeiboDataset):
             self.transforms(img).unsqueeze(0),
             torch.tensor([label], dtype=torch.long),
         )
-        
-        
+
+
 class TwitterDatasetWithEvent(WeiboDataset):
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
@@ -136,8 +136,12 @@ class MultiModalData(DatamoduleBase):
         max_length: int = 200,
         dataset_name: str = "weibo",
     ):
-        assert dataset_name in ["weibo", "twitter", "twitter_with_event", "weibo_with_event"], \
-            "Dataset name must be in [weibo, twitter, twitter_with_event, weibo_with_event]"
+        assert dataset_name in [
+            "weibo",
+            "twitter",
+            "twitter_with_event",
+            "weibo_with_event",
+        ], "Dataset name must be in [weibo, twitter, twitter_with_event, weibo_with_event]"
         super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
         self.train_path = train_path

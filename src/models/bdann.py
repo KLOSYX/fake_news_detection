@@ -42,12 +42,12 @@ def to_np(x):
 # Neural Network Model (1 hidden layer)
 class CNN_Fusion(nn.Module):
     def __init__(
-            self,
-            event_num: int = 40,
-            class_num: int = 2,
-            hidden_dim: int = 32,
-            bert_name: str = "bert-base-uncased",
-            dropout: float = 0.5,
+        self,
+        event_num: int = 40,
+        class_num: int = 2,
+        hidden_dim: int = 32,
+        bert_name: str = "bert-base-uncased",
+        dropout: float = 0.5,
     ):
         super().__init__()
 
@@ -116,13 +116,13 @@ class CNN_Fusion(nn.Module):
 
 class BDANN(FakeNewsBase):
     def __init__(
-            self,
-            event_num: int = 40,
-            class_num: int = 1,
-            hidden_dim: int = 512,
-            bert_name: str = "bert-base-uncased",
-            dropout: float = 0.5,
-            lr: float = 0.001,
+        self,
+        event_num: int = 40,
+        class_num: int = 1,
+        hidden_dim: int = 512,
+        bert_name: str = "bert-base-uncased",
+        dropout: float = 0.5,
+        lr: float = 0.001,
     ):
         super().__init__()
         self.model = CNN_Fusion(
