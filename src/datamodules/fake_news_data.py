@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 from PIL import Image
 from torch import nn
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, random_split
 from torchvision import transforms
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
@@ -102,9 +102,10 @@ class WeiboDataset(Dataset):
 
 
 class TwitterDataset(WeiboDataset):
-    def __init__(self, img_path: str, data_path: str) -> None:
+    def __init__(self, img_path: str, data_path: str, simclr_trans: bool = True) -> None:
         super().__init__(img_path, data_path)
-        self.transforms = self.get_simclr_pipeline_transform(224)
+        if simclr_trans:
+            self.transforms = self.get_simclr_pipeline_transform(224)
 
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
@@ -176,6 +177,8 @@ class MultiModalData(DatamoduleBase):
         processor_name: Optional[str] = None,
         max_length: int = 200,
         dataset_name: str = "weibo",
+        use_test_as_val: bool = False,
+        simclr_trans: bool = False,
     ):
         super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
@@ -186,10 +189,36 @@ class MultiModalData(DatamoduleBase):
         )
         self.processor_name = processor_name
         self.max_length = max_length
+        self.dataset_name = dataset_name
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
         elif dataset_name == "twitter":
             self.dataset_cls = TwitterDataset
+        else:
+            raise ValueError("dataset name must be weibo or twitter")
+        self.use_test_as_val = use_test_as_val
+        self.simclr_trans = simclr_trans
+
+    def setup(self, stage: Optional[str] = None) -> None:
+        self.collector = self._get_collector()
+        if stage == "fit" or stage is None:
+            dataset = self._get_dataset(stage)
+            if not self.use_test_as_val:
+                val_size = max(int(len(dataset) * self.val_ratio), 1)
+                train_size = len(dataset) - val_size
+                assert (
+                    train_size >= 1 and val_size >= 1
+                ), "Train size or val size is smaller than 1!"
+                print("Train size", train_size, "Val size", val_size)
+                self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
+            else:
+                self.train_data = dataset
+                self.val_data = self._get_dataset("test")
+                print("Train size", len(self.train_data), "Val size", len(self.val_data))
+
+        if stage == "test" or stage is None:
+            self.test_data = self._get_dataset(stage)
+            print("Test size", len(self.test_data))
 
     def _get_collector(self) -> Any:
         return Collector(
@@ -199,10 +228,13 @@ class MultiModalData(DatamoduleBase):
         )
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
-        return self.dataset_cls(
+        params = dict(
             img_path=self.img_path,
             data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
         )
+        if self.dataset_name == "twitter":
+            params["simclr_trans"] = self.simclr_trans
+        return self.dataset_cls(**params)
 
 
 # debug
