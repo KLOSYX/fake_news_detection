@@ -1,6 +1,5 @@
 [core]
-    remote = gdrive
-['remote "teracloud"']
-    url = webdavs://aki.teracloud.jp/dav/fake_news_detection
-['remote "gdrive"']
-    url = gdrive://1nVI7FgAfYGyATe7g3r31REufZRcjZ9gr
+    remote = aliyun
+['remote "aliyun"']
+    url = oss://anbinx-mldata/fake_news_detection
+    oss_endpoint = oss-cn-hongkong.aliyuncs.com
