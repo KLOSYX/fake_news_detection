@@ -19,13 +19,25 @@ class FakeNewsBase(pl.LightningModule):
     ):
         metric_collection = torchmetrics.MetricCollection(
             dict(
-                accuracy=torchmetrics.Accuracy(),
-                fake_precision=torchmetrics.Precision(ignore_index=0),
-                fake_recall=torchmetrics.Recall(ignore_index=0),
-                fake_f1score=torchmetrics.F1Score(ignore_index=0),
-                real_precision=torchmetrics.Precision(ignore_index=1),
-                real_recall=torchmetrics.Recall(ignore_index=1),
-                real_f1score=torchmetrics.F1Score(ignore_index=1),
+                accuracy=torchmetrics.classification.Accuracy(),
+                fake_precision=torchmetrics.classification.Precision(
+                    ignore_index=0, multiclass=True, num_classes=2
+                ),
+                fake_recall=torchmetrics.classification.Recall(
+                    ignore_index=0, multiclass=True, num_classes=2
+                ),
+                fake_f1score=torchmetrics.classification.F1Score(
+                    ignore_index=0, multiclass=True, num_classes=2
+                ),
+                real_precision=torchmetrics.classification.Precision(
+                    ignore_index=1, multiclass=True, num_classes=2
+                ),
+                real_recall=torchmetrics.classification.Recall(
+                    ignore_index=1, multiclass=True, num_classes=2
+                ),
+                real_f1score=torchmetrics.classification.F1Score(
+                    ignore_index=1, multiclass=True, num_classes=2
+                ),
             ),
         )
         return metric_collection
@@ -39,40 +51,40 @@ class FakeNewsBase(pl.LightningModule):
     def on_train_start(self):
         assert hasattr(self, "criterion"), "criterion not found"
 
-    def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
+    def forward_loss(self, batch):
         text_encodeds, img_encodeds, labels = batch
-        logits = self(text_encodeds, img_encodeds)  # [N, 2]
-        loss = self.criterion(logits, labels)
-        preds = torch.argmax(logits, dim=1)
-        self.log_dict({"train/loss": loss}, sync_dist=True)
-        self.log_dict(self.train_metrics(preds, labels), sync_dist=True)
+        logits = self(text_encodeds, img_encodeds)  # [N]
+        loss = self.criterion(logits, labels.to(torch.float))
+        return torch.sigmoid(logits), labels, loss
+
+    def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
+        logits, labels, loss = self.forward_loss(batch)
+        self.log_dict({"train/loss": loss})
+        train_metrics_dict = self.train_metrics(logits, labels)
+        self.log_dict(train_metrics_dict)
         return loss
 
     def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
         self.train_metrics.reset()
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        text_encodeds, img_encodeds, labels = batch
-        logits = self(text_encodeds, img_encodeds)  # [N, 2]
-        loss = self.criterion(logits, labels)
-        preds = torch.argmax(logits, dim=1)
-        self.log_dict({"val/loss": loss}, sync_dist=True)
-        return (preds, labels)
+        logits, labels, loss = self.forward_loss(batch)
+        self.log_dict({"val/loss": loss})
+        return (logits, labels)
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.val_metrics.reset()
-        preds, labels = zip(*outputs)
-        self.log_dict(self.val_metrics(torch.cat(preds), torch.cat(labels)), sync_dist=True)
+        logits, labels = zip(*outputs)
+        val_metrics_dict = self.val_metrics(torch.cat(logits), torch.cat(labels))
+        self.log_dict(val_metrics_dict, sync_dist=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        text_encodeds, img_encodeds, labels = batch
-        logits = self(text_encodeds, img_encodeds)  # [N, 2]
-        loss = self.criterion(logits, labels)
-        preds = torch.argmax(logits, dim=1)  # [N]
-        self.log_dict({"test/loss": loss}, sync_dist=True)
-        return (preds, labels)
+        logits, labels, loss = self.forward_loss(batch)
+        self.log_dict({"test/loss": loss})
+        return (logits, labels)
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.test_metrics.reset()
-        preds, labels = zip(*outputs)
-        self.log_dict(self.test_metrics(torch.cat(preds), torch.cat(labels)), sync_dist=True)
+        logits, labels = zip(*outputs)
+        test_metrics_dict = self.test_metrics(torch.cat(logits), torch.cat(labels))
+        self.log_dict(test_metrics_dict)

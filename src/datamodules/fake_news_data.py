@@ -7,7 +7,6 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 from transformers import AutoFeatureExtractor, AutoTokenizer
-from pathlib import Path
 
 from src.datamodules.components.dm_base import DatamoduleBase
 
@@ -106,7 +105,9 @@ class MultiModalData(DatamoduleBase):
         self.img_path = img_path
         self.train_path = train_path
         self.test_path = test_path
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, cache_dir="~/.cache")
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            tokenizer_name, cache_dir=Path.home() / ".cache"
+        )
         self.processor_name = processor_name
         self.max_length = max_length
         if dataset_name == "weibo":
