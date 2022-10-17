@@ -17,18 +17,16 @@ from src.models.components.fake_news_base import FakeNewsBase
 
 class ReverseLayerF(Function):
     @staticmethod
-    def forward(ctx, x, lambd):
-        ctx.save_for_backward(lambd)
+    def forward(ctx, x):
         return x.view_as(x)
 
     @staticmethod
     def backward(ctx, grad_output):
-        (lambd,) = ctx.saved_tensors
-        return grad_output * -lambd
+        return grad_output * -1
 
 
 def grad_reverse(x):
-    return ReverseLayerF()(x)
+    return ReverseLayerF.apply(x)
 
 
 def to_var(x):
@@ -44,25 +42,19 @@ def to_np(x):
 # Neural Network Model (1 hidden layer)
 class CNN_Fusion(nn.Module):
     def __init__(
-        self,
-        event_num,
-        vocab_size,
-        embed_dim,
-        class_num,
-        hidden_dim,
-        bert_name,
-        dropout,
+            self,
+            event_num: int = 40,
+            class_num: int = 2,
+            hidden_dim: int = 32,
+            bert_name: str = "bert-base-uncased",
+            dropout: float = 0.5,
     ):
         super().__init__()
 
         self.event_num = event_num
 
-        vocab_size = vocab_size
-        emb_dim = embed_dim
-
-        C = class_num
+        self.class_num = class_num
         self.hidden_size = hidden_dim
-        self.lstm_size = embed_dim
         self.social_size = 19
 
         # bert
@@ -92,7 +84,7 @@ class CNN_Fusion(nn.Module):
 
         # Class Classifier
         self.class_classifier = nn.Sequential()
-        self.class_classifier.add_module("c_fc1", nn.Linear(2 * self.hidden_size, 2))
+        self.class_classifier.add_module("c_fc1", nn.Linear(2 * self.hidden_size, self.class_num))
         self.class_classifier.add_module("c_softmax", nn.Softmax(dim=1))
 
         # Event Classifier
@@ -124,30 +116,57 @@ class CNN_Fusion(nn.Module):
 
 class BDANN(FakeNewsBase):
     def __init__(
-        self, event_num, vocab_size, embed_dim, class_num, hidden_dim, bert_hidden_dim, dropout, lr
+            self,
+            event_num: int = 40,
+            class_num: int = 1,
+            hidden_dim: int = 512,
+            bert_name: str = "bert-base-uncased",
+            dropout: float = 0.5,
+            lr: float = 0.001,
     ):
         super().__init__()
         self.model = CNN_Fusion(
             event_num,
-            vocab_size,
-            embed_dim,
             class_num,
             hidden_dim,
-            bert_hidden_dim,
+            bert_name,
             dropout,
         )
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.BCEWithLogitsLoss()
+        self.domain_criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
-    def forward(self, text_encodeds, img_encodeds, labels, event_labels):
+    def forward(self, text_encodeds, img_encodeds):
         class_output, domain_output = self.model(text_encodeds, img_encodeds)
-        class_loss = self.criterion(class_output, labels)
-        domain_loss = self.criterion(domain_output, event_labels)
+        return class_output, domain_output
+
+    def forward_loss(self, batch):
+        text_encodeds, img_encodeds, labels, event_labels = batch
+        class_output, domain_output = self.forward(text_encodeds, img_encodeds)
+        class_output = class_output.squeeze()
+        class_loss = self.criterion(class_output, labels.to(torch.float))
+        domain_loss = self.domain_criterion(domain_output, event_labels)
         loss = class_loss - domain_loss
-        return loss
+        return torch.sigmoid(class_output), labels, loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, list(self.model.parameters())), lr=self.lr
         )
         return optimizer
+
+
+if __name__ == "__main__":
+    import hydra
+    import omegaconf
+    import pyrootutils
+
+    root = pyrootutils.setup_root(__file__, pythonpath=True)
+    model_cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "bdann.yaml")
+    dm_cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "twitter_event.yaml")
+    model = hydra.utils.instantiate(model_cfg)
+    dm = hydra.utils.instantiate(dm_cfg)
+    dm.setup()
+    batch = next(iter(dm.train_dataloader()))
+    model.forward_loss(batch)
+    pass

@@ -58,6 +58,22 @@ class TwitterDataset(WeiboDataset):
             self.transforms(img).unsqueeze(0),
             torch.tensor([label], dtype=torch.long),
         )
+        
+        
+class TwitterDatasetWithEvent(WeiboDataset):
+    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor]:
+        text = self.data.iloc[idx]["text"]
+        img_name = self.data.iloc[idx]["imgs"]
+        img_path = self.img_path / img_name
+        img = Image.open(img_path).convert("RGB")
+        label = self.data.iloc[idx]["label"]
+        event_label = self.data.iloc[idx]["event"]
+        return (
+            text,
+            self.transforms(img).unsqueeze(0),
+            torch.tensor([label], dtype=torch.long),
+            torch.tensor([event_label], dtype=torch.long),
+        )
 
 
 class Collector:
@@ -87,6 +103,25 @@ class Collector:
         return text_encodeds, img_encodeds, labels
 
 
+class CollectorWithEvent(Collector):
+    def __call__(self, data: List) -> Tuple:
+        texts, imgs, labels, event_labels = zip(*data)
+        text_encodeds = self.tokenizer(
+            list(texts),
+            padding=True,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        img_encodeds = (
+            self.processor(imgs) if self.processor is not None else torch.cat(imgs, dim=0)
+        )
+        # image agumentation here, todo...
+        labels = torch.cat(labels)
+        event_labels = torch.cat(event_labels)
+        return text_encodeds, img_encodeds, labels, event_labels
+
+
 class MultiModalData(DatamoduleBase):
     def __init__(
         self,
@@ -101,6 +136,8 @@ class MultiModalData(DatamoduleBase):
         max_length: int = 200,
         dataset_name: str = "weibo",
     ):
+        assert dataset_name in ["weibo", "twitter", "twitter_with_event", "weibo_with_event"], \
+            "Dataset name must be in [weibo, twitter, twitter_with_event, weibo_with_event]"
         super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
         self.train_path = train_path
@@ -110,17 +147,27 @@ class MultiModalData(DatamoduleBase):
         )
         self.processor_name = processor_name
         self.max_length = max_length
+        self.dataset_name = dataset_name
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
         elif dataset_name == "twitter":
             self.dataset_cls = TwitterDataset
+        elif dataset_name == "twitter_with_event":
+            self.dataset_cls = TwitterDatasetWithEvent
 
     def _get_collector(self) -> Any:
-        return Collector(
-            tokenizer=self.tokenizer,
-            processor=self.processor_name,
-            max_length=self.max_length,
-        )
+        if "event" not in self.dataset_name:
+            return Collector(
+                tokenizer=self.tokenizer,
+                processor=self.processor_name,
+                max_length=self.max_length,
+            )
+        else:
+            return CollectorWithEvent(
+                tokenizer=self.tokenizer,
+                processor=self.processor_name,
+                max_length=self.max_length,
+            )
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         return self.dataset_cls(

@@ -232,8 +232,8 @@ if __name__ == "__main__":
     all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
     all_data["event"] = all_data.imgs.apply(lambda x: x.split("_")[0])
     all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
-    dev_data_valid["event"] = all_data.event[: dev_data_valid.shape[0]]
-    test_data_valid["event"] = all_data.event[dev_data_valid.shape[0] :]
+    dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
+    test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
 
     print(
         "===== Saving data =====\n",
