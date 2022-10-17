@@ -1,28 +1,30 @@
-"""
-Implementation of the EANN model.
-original paper: https://dl.acm.org/doi/10.1145/3219819.3219903
-original code: https://github.com/xiaolan98/BDANN-IJCNN2020
+"""Implementation of the EANN model.
+
+original paper: https://dl.acm.org/doi/10.1145/3219819.3219903 original code:
+https://github.com/xiaolan98/BDANN-IJCNN2020
 """
 from pathlib import Path
 
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.autograd import Variable, Function
+from torch.autograd import Function, Variable
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
-from transformers import BertModel, BertConfig
+from transformers import BertConfig, BertModel
 
 from src.models.components.fake_news_base import FakeNewsBase
 
 
 class ReverseLayerF(Function):
-
-    def forward(self, x):
-        self.lambd = args.lambd
+    @staticmethod
+    def forward(ctx, x, lambd):
+        ctx.save_for_backward(lambd)
         return x.view_as(x)
 
-    def backward(self, grad_output):
-        return (grad_output * -self.lambd)
+    @staticmethod
+    def backward(ctx, grad_output):
+        (lambd,) = ctx.saved_tensors
+        return grad_output * -lambd
 
 
 def grad_reverse(x):
@@ -41,16 +43,17 @@ def to_np(x):
 
 # Neural Network Model (1 hidden layer)
 class CNN_Fusion(nn.Module):
-    def __init__(self,
-                 event_num,
-                 vocab_size,
-                 embed_dim,
-                 class_num,
-                 hidden_dim,
-                 bert_name,
-                 dropout,
-                 ):
-        super(CNN_Fusion, self).__init__()
+    def __init__(
+        self,
+        event_num,
+        vocab_size,
+        embed_dim,
+        class_num,
+        hidden_dim,
+        bert_name,
+        dropout,
+    ):
+        super().__init__()
 
         self.event_num = event_num
 
@@ -79,7 +82,7 @@ class CNN_Fusion(nn.Module):
         for param in vgg_19.parameters():
             param.requires_grad = False
         # visual model
-        num_ftrs = vgg_19.classifier._modules['6'].out_features
+        num_ftrs = vgg_19.classifier._modules["6"].out_features
         self.vgg = vgg_19
         self.image_fc1 = nn.Linear(num_ftrs, self.hidden_size)
         # self.image_fc1 = nn.Linear(num_ftrs,  512)
@@ -89,15 +92,17 @@ class CNN_Fusion(nn.Module):
 
         # Class Classifier
         self.class_classifier = nn.Sequential()
-        self.class_classifier.add_module('c_fc1', nn.Linear(2 * self.hidden_size, 2))
-        self.class_classifier.add_module('c_softmax', nn.Softmax(dim=1))
+        self.class_classifier.add_module("c_fc1", nn.Linear(2 * self.hidden_size, 2))
+        self.class_classifier.add_module("c_softmax", nn.Softmax(dim=1))
 
         # Event Classifier
         self.domain_classifier = nn.Sequential()
-        self.domain_classifier.add_module('d_fc1', nn.Linear(2 * self.hidden_size, self.hidden_size))
-        self.domain_classifier.add_module('d_relu1', nn.LeakyReLU(True))
-        self.domain_classifier.add_module('d_fc2', nn.Linear(self.hidden_size, self.event_num))
-        self.domain_classifier.add_module('d_softmax', nn.Softmax(dim=1))
+        self.domain_classifier.add_module(
+            "d_fc1", nn.Linear(2 * self.hidden_size, self.hidden_size)
+        )
+        self.domain_classifier.add_module("d_relu1", nn.LeakyReLU(True))
+        self.domain_classifier.add_module("d_fc2", nn.Linear(self.hidden_size, self.event_num))
+        self.domain_classifier.add_module("d_softmax", nn.Softmax(dim=1))
 
     def forward(self, text_encodeds, image_encodeds):
         # IMAGE
@@ -118,16 +123,9 @@ class CNN_Fusion(nn.Module):
 
 
 class BDANN(FakeNewsBase):
-    def __init__(self,
-                 event_num,
-                 vocab_size,
-                 embed_dim,
-                 class_num,
-                 hidden_dim,
-                 bert_hidden_dim,
-                 dropout,
-                 lr
-                 ):
+    def __init__(
+        self, event_num, vocab_size, embed_dim, class_num, hidden_dim, bert_hidden_dim, dropout, lr
+    ):
         super().__init__()
         self.model = CNN_Fusion(
             event_num,
@@ -149,6 +147,7 @@ class BDANN(FakeNewsBase):
         return loss
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, list(self.model.parameters())),
-                                     lr=self.lr)
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, list(self.model.parameters())), lr=self.lr
+        )
         return optimizer
