@@ -10,3 +10,4 @@ max_length: 200
 val_set_ratio: 0.1
 batch_size: 32
 num_workers: 0
+use_test_as_val: false
