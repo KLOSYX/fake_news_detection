@@ -85,7 +85,7 @@ class CNN_Fusion(nn.Module):
         # Class Classifier
         self.class_classifier = nn.Sequential()
         self.class_classifier.add_module("c_fc1", nn.Linear(2 * self.hidden_size, self.class_num))
-        self.class_classifier.add_module("c_softmax", nn.Softmax(dim=1))
+        # self.class_classifier.add_module("c_softmax", nn.Softmax(dim=1))
 
         # Event Classifier
         self.domain_classifier = nn.Sequential()
