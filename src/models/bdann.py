@@ -7,6 +7,7 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
+from einops import reduce
 from torch import nn
 from torch.autograd import Function, Variable
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
@@ -96,13 +97,30 @@ class CNN_Fusion(nn.Module):
         self.domain_classifier.add_module("d_fc2", nn.Linear(self.hidden_size, self.event_num))
         self.domain_classifier.add_module("d_softmax", nn.Softmax(dim=1))
 
+    @staticmethod
+    def mean_average(attention_mask: torch.Tensor, sequence_out: torch.Tensor) -> torch.Tensor:
+        input_mask_expanded: torch.Tensor = (
+            attention_mask.unsqueeze(-1).expand(sequence_out.size()).float()
+        )
+        t = sequence_out * input_mask_expanded  # [N, L, d]
+        sum_embed = reduce(t, "N L d -> N d", "sum")
+        sum_mask = reduce(input_mask_expanded, "N L d -> N d", "sum")
+        sum_mask = torch.clamp(sum_mask, min=1e-9)  # make sure not divided by zero
+        # bert_out.append(sum_embed / sum_mask)
+        # bert_out = torch.cat(bert_out, dim=1)
+        bert_out = sum_embed / sum_mask
+        return bert_out
+
     def forward(self, text_encodeds, image_encodeds):
         # IMAGE
         image = self.vgg(image_encodeds)  # [N, 512]
         # image = self.image_fc1(image)
         image = F.relu(self.image_fc1(image))
 
-        last_hidden_state = torch.mean(self.bertModel(**text_encodeds)[0], dim=1, keepdim=False)
+        # last_hidden_state = torch.mean(self.bertModel(**text_encodeds)[0], dim=1, keepdim=False)
+        last_hidden_state = self.mean_average(
+            text_encodeds.attention_mask, self.bertModel(**text_encodeds)[0]
+        )
         text = F.relu(self.fc2(last_hidden_state))
         text_image = torch.cat((text, image), 1)
 
@@ -153,7 +171,10 @@ class BDANN(FakeNewsBase):
         optimizer = torch.optim.Adam(
             filter(lambda p: p.requires_grad, list(self.model.parameters())), lr=self.lr
         )
-        return optimizer
+        scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer, lr_lambda=lambda epoch: 1 / (1.0 + 10 * float(epoch) / 100) ** 0.75
+        )
+        return [optimizer], [{"scheduler": scheduler, "interval": "epoch", "frequency": 1}]
 
 
 if __name__ == "__main__":
