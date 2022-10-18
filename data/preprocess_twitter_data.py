@@ -144,6 +144,15 @@ def detection_lang(text: str):
     return lang
 
 
+def get_event_name(image_id: str) -> str:
+    event_name = re.sub("fake", "", image_id)
+    event_name = re.sub("real", "", event_name)
+    event_name = re.sub("[0-9_]", "", event_name)
+    event_name = event_name.split(".")[0]
+    event_name = re.sub("[A-Z]+", "", event_name)
+    return event_name
+
+
 if __name__ == "__main__":
     dev_data = pd.read_csv(
         root / "data/image-verification-corpus-master/mediaeval2016/devset/posts.txt",
@@ -272,7 +281,7 @@ if __name__ == "__main__":
     # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
 
     all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
-    all_data["event"] = all_data.imgs.apply(lambda x: x.split("_")[0])
+    all_data["event"] = all_data.imgs.apply(get_event_name)
     all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
     dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
     test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
