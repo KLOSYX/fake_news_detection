@@ -1,0 +1,12 @@
+_target_: src.datamodules.fake_news_data.MultiModalData
+
+img_path: /root/fake_news_detection/data/image-verification-corpus-master/images_filtered
+dataset_name: twitter_with_event
+tokenizer_name: bert-base-uncased
+processor_name: null
+train_path: /root/fake_news_detection/data/image-verification-corpus-master/train_posts.json
+test_path: /root/fake_news_detection/data/image-verification-corpus-master/test_posts.json
+max_length: 23
+val_set_ratio: 0.1
+batch_size: 8
+num_workers: 0

@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from typing import Dict, List
 
+import numpy as np
 import pandas as pd
 import pyrootutils
 from langdetect import DetectorFactory, detect
@@ -222,11 +223,17 @@ if __name__ == "__main__":
 
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
-    dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
+    # dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
 
     test_data_valid = test_data[test_data.imgs.apply(len) > 0]
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
-    test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
+    # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
+
+    all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
+    all_data["event"] = all_data.imgs.apply(lambda x: x.split("_")[0])
+    all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
+    dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
+    test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
 
     print(
         "===== Saving data =====\n",
