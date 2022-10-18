@@ -113,6 +113,9 @@ def check_valid_image(
     invalid_img_set: Set[str],
     mediaeval2015_data: pd.DataFrame,
 ) -> List[str]:
+    """Filter out invalid images According to https://github.com/MKLab-ITI/image-verification-
+    corpus/issues/4#issuecomment-1123350335, the images in the dataset could also present in the
+    MediaEval 2015 dataset."""
     valid_img_list = []
     img_ids_old = mediaeval2015_data.loc[
         mediaeval2015_data["tweetId"] == post_id, "imageId(s)"
@@ -262,7 +265,7 @@ if __name__ == "__main__":
 
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
-    # dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
+    dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
 
     test_data_valid = test_data[test_data.imgs.apply(len) > 0]
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
