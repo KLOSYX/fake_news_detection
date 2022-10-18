@@ -132,7 +132,7 @@ def main():
 
     test_data_with_img = test_data[test_data.imgs.apply(len) > 0]
     test_data_with_img["imgs"] = test_data_with_img.imgs.apply(lambda x: x[0])
-    test_data_with_img = test_data_with_img.drop_duplicates(subset=["title", "imgs"])
+    # test_data_with_img = test_data_with_img.drop_duplicates(subset=["title", "imgs"])
 
     print(
         "train length with image:",

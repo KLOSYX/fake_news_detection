@@ -137,7 +137,7 @@ class TwitterDataset(WeiboDataset):
         return data_transforms
 
 
-class TwitterDatasetWithEvent(WeiboDataset):
+class TwitterDatasetWithEvent(TwitterDataset):
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
         img_name = self.data.iloc[idx]["imgs"]
@@ -231,6 +231,8 @@ class MultiModalData(DatamoduleBase):
         self.processor_name = processor_name
         self.max_length = max_length
         self.dataset_name = dataset_name
+        self.use_test_as_val = use_test_as_val
+        self.simclr_trans = simclr_trans
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
         elif dataset_name == "twitter":
@@ -260,18 +262,15 @@ class MultiModalData(DatamoduleBase):
             print("Test size", len(self.test_data))
 
     def _get_collector(self) -> Any:
+        params = dict(
+            tokenizer=self.tokenizer,
+            processor=self.processor_name,
+            max_length=self.max_length,
+        )
         if "event" not in self.dataset_name:
-            return Collector(
-                tokenizer=self.tokenizer,
-                processor=self.processor_name,
-                max_length=self.max_length,
-            )
+            return Collector(**params)
         else:
-            return CollectorWithEvent(
-                tokenizer=self.tokenizer,
-                processor=self.processor_name,
-                max_length=self.max_length,
-            )
+            return CollectorWithEvent(**params)
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         params = dict(
