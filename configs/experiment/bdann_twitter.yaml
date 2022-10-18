@@ -31,7 +31,7 @@ trainer:
 
 logger:
   wandb:
-    project: fakenews_twitter_spotfake
+    project: fakenews_twitter_bdann
     tags: ${tags}
 
 callbacks:

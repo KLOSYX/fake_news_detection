@@ -169,7 +169,9 @@ class BDANN(FakeNewsBase):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, list(self.model.parameters())), lr=self.lr
+            filter(lambda p: p.requires_grad, list(self.model.parameters())),
+            lr=self.lr,
+            weight_decay=0.1,
         )
         scheduler = torch.optim.lr_scheduler.LambdaLR(
             optimizer, lr_lambda=lambda epoch: 1 / (1.0 + 10 * float(epoch) / 100) ** 0.75

@@ -137,7 +137,7 @@ class TwitterDataset(WeiboDataset):
         return data_transforms
 
 
-class TwitterDatasetWithEvent(WeiboDataset):
+class TwitterDatasetWithEvent(TwitterDataset):
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
         img_name = self.data.iloc[idx]["imgs"]

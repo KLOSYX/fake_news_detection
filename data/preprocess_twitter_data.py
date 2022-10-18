@@ -2,7 +2,7 @@ import pickle
 import re
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Set, Tuple
 
 import numpy as np
 import pandas as pd
@@ -94,27 +94,40 @@ def refine_images(root_dir: Path, path: Path):
         root_dir.mkdir(parents=True)
     try:
         image = Image.open(str(path)).convert("RGB")
-        if min(image.size) < 100:
-            save_path = ""
-        else:
-            save_path = root_dir / (path.stem + path.suffix)
-            with save_path.open("wb") as f:
-                image.save(f)
+        # if min(image.size) < 100:
+        #     save_path = ""
+        # else:
+        save_path = root_dir / (path.stem + path.suffix)
+        with save_path.open("wb") as f:
+            image.save(f)
     except Exception as e:
         tqdm.write(str(e))
         save_path = ""
     return str(save_path)
 
 
-def check_valid_image(img_dict: Dict, img_id_list: list) -> List[str]:
+def check_valid_image(
+    img_dict: Dict,
+    img_ids: List[str],
+    post_id: str,
+    invalid_img_set: Set[str],
+    mediaeval2015_data: pd.DataFrame,
+) -> List[str]:
     valid_img_list = []
-    for img_id in img_id_list:
+    img_ids_old = mediaeval2015_data.loc[
+        mediaeval2015_data["tweetId"] == post_id, "imageId(s)"
+    ].values.tolist()
+    if img_ids_old:
+        img_ids_old = img_ids_old[0].split(",")
+    img_ids_set = set(img_ids + img_ids_old)
+    for img_id in img_ids_set:
         img_id = img_id.strip()
         img_name = img_dict.get(img_id, "")
         if img_name:
             valid_img_list.append(img_name.split("/")[-1])
         else:
-            print(f"{img_id} not exists")
+            # print(f"{img_id} not exists")
+            invalid_img_set.add(img_id)
     return valid_img_list
 
 
@@ -140,6 +153,20 @@ if __name__ == "__main__":
         delimiter="\t",
     )
 
+    mediaeval_2015_data = pd.concat(
+        [
+            pd.read_csv(
+                root / "data/image-verification-corpus-master/mediaeval2015/devset/tweets.txt",
+                delimiter="\t",
+            ),
+            pd.read_csv(
+                root / "data/image-verification-corpus-master/mediaeval2015/testset/tweets.txt",
+                delimiter="\t",
+            ),
+        ],
+        axis=0,
+    )
+
     # %%
     dev_data["label"] = dev_data.label.apply(lambda x: 0 if x == "real" else 1)
     test_data["label"] = test_data.label.apply(lambda x: 0 if x == "real" else 1)
@@ -147,11 +174,10 @@ if __name__ == "__main__":
     # %%
     img_path_list = [
         root
-        / "data/image-verification-corpus-master/mediaeval2015/devset/MediaEval2015_DevSet_Images",
+        / "data/image-verification-corpus-master/mediaeval2015/devset/Medieval2015_DevSet_Images",
+        root / "data/image-verification-corpus-master/mediaeval2015/testset/TestSetImages",
         root
-        / "data/image-verification-corpus-master/mediaeval2015/testset/MediaEval2015_TestSetImages",
-        root
-        / "data/image-verification-corpus-master/mediaeval2016/testset/Mediaeval2016_TestSet_Images/Mediaeval2016_TestSet_Images",
+        / "data/image-verification-corpus-master/mediaeval2016/testset/Mediaeval2016_TestSet_Images",
     ]
 
     # %%
@@ -162,7 +188,7 @@ if __name__ == "__main__":
 
     for img_path in img_path_list:
         cnt = 0
-        for f in tqdm(img_path.glob("*"), desc=f"Refining images in {str(img_path)}"):
+        for f in tqdm(img_path.glob("**/*"), desc=f"Refining images in {str(img_path)}"):
             if f.suffix in [".txt"]:
                 continue
             else:
@@ -176,9 +202,25 @@ if __name__ == "__main__":
     img_dict = {x.split("/")[-1].split(".")[0]: x for x in img_list}
 
     # %%
-    dev_data["imgs"] = dev_data["image_id(s)"].apply(
-        lambda x: check_valid_image(img_dict, x.split(","))
+    invalid_img_set = set()
+    dev_data["imgs"] = dev_data.apply(
+        lambda x: check_valid_image(
+            img_dict,
+            x["image_id(s)"].split(","),
+            x["post_id"],
+            invalid_img_set,
+            mediaeval_2015_data,
+        ),
+        axis=1,
     )
+    test_data["imgs"] = test_data.apply(
+        lambda x: check_valid_image(
+            img_dict, x["image_id"].split(","), x["post_id"], invalid_img_set, mediaeval_2015_data
+        ),
+        axis=1,
+    )
+    print(f"===== Invalid images: {len(invalid_img_set)} in total ======")
+    print(invalid_img_set)
 
     translated_train_data = pickle.load(
         open(root / "data/image-verification-corpus-master/cleaned_train_text.pkl", "rb")
@@ -192,9 +234,6 @@ if __name__ == "__main__":
     tqdm.pandas(desc="Detecting language")
     dev_data["lang"] = dev_data.text.progress_apply(lambda x: detection_lang(x))
 
-    test_data["imgs"] = test_data["image_id"].apply(
-        lambda x: check_valid_image(img_dict, x.split(","))
-    )
     test_data["text"] = test_data.post_text.apply(lambda x: clean_text(x))
     test_data = test_data[test_data.text.apply(lambda x: len(x) > 0)]
     tqdm.pandas(desc="Detecting language")
