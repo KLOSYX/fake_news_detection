@@ -45,7 +45,6 @@ callbacks:
 
 model:
   event_num: 40
-  class_num: 1
   hidden_dim: 32
   bert_name: ${bert_name_or_path}
   dropout: 0.5

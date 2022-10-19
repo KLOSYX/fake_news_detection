@@ -56,14 +56,14 @@ class SpotFake(FakeNewsBase):
         self.text_fc1 = nn.Linear(self.bert.config.hidden_size, 768)
         self.text_fc2 = nn.Linear(768, 32)
         self.fc = nn.Linear(64, 35)
-        self.classifier = nn.Linear(35, 1)
+        self.classifier = nn.Linear(35, 2)
 
         # pooler
-        if pooler == "avg_pool":
-            self.pool = nn.AdaptiveAvgPool1d(1)
+        # if pooler == "avg_pool":
+        #     self.pool = nn.AdaptiveAvgPool1d(1)
 
         # loss function
-        self.criterion = nn.BCEWithLogitsLoss()
+        self.criterion = nn.CrossEntropyLoss()
 
         # modify the last fc layer of vgg
         new_classifier = nn.Sequential(*list(self.vgg_model.children())[-1][:6])
@@ -122,8 +122,8 @@ class SpotFake(FakeNewsBase):
         x = self.dropout(x)
         x = self.fc(x)
         x = self.act(x)
-        logits = self.classifier(x)  # (N, 1)
-        logits = logits.squeeze(-1)  # (N,)
+        logits = self.classifier(x)  # (N, 2)
+        # logits = logits.squeeze(-1)  # (N,)
 
         return logits
 
