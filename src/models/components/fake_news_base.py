@@ -21,23 +21,15 @@ class FakeNewsBase(pl.LightningModule):
             dict(
                 accuracy=torchmetrics.classification.Accuracy(),
                 fake_precision=torchmetrics.classification.Precision(
-                    ignore_index=0, multiclass=True, num_classes=2
+                    ignore_index=0, num_classes=2
                 ),
-                fake_recall=torchmetrics.classification.Recall(
-                    ignore_index=0, multiclass=True, num_classes=2
-                ),
-                fake_f1score=torchmetrics.classification.F1Score(
-                    ignore_index=0, multiclass=True, num_classes=2
-                ),
+                fake_recall=torchmetrics.classification.Recall(ignore_index=0, num_classes=2),
+                fake_f1score=torchmetrics.classification.F1Score(ignore_index=0, num_classes=2),
                 real_precision=torchmetrics.classification.Precision(
-                    ignore_index=1, multiclass=True, num_classes=2
+                    ignore_index=1, num_classes=2
                 ),
-                real_recall=torchmetrics.classification.Recall(
-                    ignore_index=1, multiclass=True, num_classes=2
-                ),
-                real_f1score=torchmetrics.classification.F1Score(
-                    ignore_index=1, multiclass=True, num_classes=2
-                ),
+                real_recall=torchmetrics.classification.Recall(ignore_index=1, num_classes=2),
+                real_f1score=torchmetrics.classification.F1Score(ignore_index=1, num_classes=2),
             ),
         )
         return metric_collection
@@ -53,14 +45,15 @@ class FakeNewsBase(pl.LightningModule):
 
     def forward_loss(self, batch):
         text_encodeds, img_encodeds, labels = batch
-        logits = self(text_encodeds, img_encodeds)  # [N]
-        loss = self.criterion(logits, labels.to(torch.float))
-        return torch.sigmoid(logits), labels, loss
+        logits = self(text_encodeds, img_encodeds)  # [N, 2]
+        loss = self.criterion(logits, labels)
+        return logits, labels, loss
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         logits, labels, loss = self.forward_loss(batch)
+        preds = torch.argmax(logits, dim=1)  # (N,)
         self.log_dict({"train/loss": loss})
-        train_metrics_dict = self.train_metrics(logits, labels)
+        train_metrics_dict = self.train_metrics(preds, labels)
         self.log_dict(train_metrics_dict)
         return loss
 
@@ -75,7 +68,8 @@ class FakeNewsBase(pl.LightningModule):
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.val_metrics.reset()
         logits, labels = zip(*outputs)
-        val_metrics_dict = self.val_metrics(torch.cat(logits), torch.cat(labels))
+        preds = torch.argmax(torch.cat(logits), dim=1)
+        val_metrics_dict = self.val_metrics(preds, torch.cat(labels))
         self.log_dict(val_metrics_dict, sync_dist=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
@@ -86,5 +80,6 @@ class FakeNewsBase(pl.LightningModule):
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
         self.test_metrics.reset()
         logits, labels = zip(*outputs)
-        test_metrics_dict = self.test_metrics(torch.cat(logits), torch.cat(labels))
+        preds = torch.argmax(torch.cat(logits), dim=1)
+        test_metrics_dict = self.test_metrics(preds, torch.cat(labels))
         self.log_dict(test_metrics_dict)

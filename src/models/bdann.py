@@ -150,8 +150,8 @@ class BDANN(FakeNewsBase):
             bert_name,
             dropout,
         )
-        self.criterion = nn.BCEWithLogitsLoss()
-        self.domain_criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss()
+        # self.domain_criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
     def forward(self, text_encodeds, img_encodeds):
@@ -161,11 +161,10 @@ class BDANN(FakeNewsBase):
     def forward_loss(self, batch):
         text_encodeds, img_encodeds, labels, event_labels = batch
         class_output, domain_output = self.forward(text_encodeds, img_encodeds)
-        class_output = class_output.squeeze()
-        class_loss = self.criterion(class_output, labels.to(torch.float))
-        domain_loss = self.domain_criterion(domain_output, event_labels)
+        class_loss = self.criterion(class_output, labels)
+        domain_loss = self.criterion(domain_output, event_labels)
         loss = class_loss - domain_loss
-        return torch.sigmoid(class_output), labels, loss
+        return class_output, labels, loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
