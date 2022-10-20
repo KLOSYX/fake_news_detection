@@ -13,6 +13,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
+task_name: spotfake_weibo
 tags: ["fakenews", "multimodal", "classify"]
 monitor: val/accuracy
 bert_name_or_path: hfl/chinese-roberta-wwm-ext

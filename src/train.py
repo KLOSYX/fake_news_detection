@@ -100,7 +100,7 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
 
-    train_metrics = trainer.callback_metrics
+    train_metrics = trainer.logged_metrics
 
     if cfg.get("test"):
         log.info("Starting testing!")
@@ -111,7 +111,7 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
         log.info(f"Best ckpt path: {ckpt_path}")
 
-    test_metrics = trainer.callback_metrics
+    test_metrics = trainer.logged_metrics
 
     # merge train and test metrics
     metric_dict = {**train_metrics, **test_metrics}
@@ -125,6 +125,8 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
         metrics_file = Path(trainer.log_dir) / "metrics.json"
         with metrics_file.open("w") as f:
             f.write(metrics_str)
+    else:
+        log.warning("No metrics to save!")
 
     return metric_dict, object_dict
 
