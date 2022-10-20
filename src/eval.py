@@ -98,12 +98,14 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
     # save metrics
     metric = metrics_to_scalars(metric_dict)
     if metric:
-        log.info("Saving eval metrics!")
+        log.info("Saving fit and test metrics!")
         metrics_str = json.dumps(metric, ensure_ascii=False, indent=2)
 
         metrics_file = Path(trainer.log_dir) / "metrics.json"
         with metrics_file.open("w") as f:
             f.write(metrics_str)
+    else:
+        log.warning("No metrics to save!")
 
     return metric_dict, object_dict
 
