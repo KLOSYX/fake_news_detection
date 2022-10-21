@@ -21,7 +21,7 @@ hydra:
 
     # storage URL to persist optimization results
     # for example, you can use SQLite if you set 'sqlite:///example.db'
-    storage: sqlite:////root/fake_news_detection/logs/hp_search/bdann_twitter_optuna.db
+    storage: sqlite:///logs/hp_search/bdann_twitter_optuna.db
 
     # name of the study to persist optimization results
     study_name: bdann_twitter_hparams_search_job_1

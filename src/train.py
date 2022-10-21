@@ -122,8 +122,7 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
         log.info("Saving fit and test metrics!")
         metrics_str = json.dumps(metric, ensure_ascii=False, indent=2)
 
-        metrics_file = Path(trainer.log_dir) / "metrics.json"
-        with metrics_file.open("w") as f:
+        with open(Path(cfg.paths.output_dir, "train_metrics.json"), "w") as f:
             f.write(metrics_str)
     else:
         log.warning("No metrics to save!")
