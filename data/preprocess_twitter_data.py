@@ -1,3 +1,4 @@
+import json
 import pickle
 import re
 import time
@@ -67,7 +68,7 @@ def clean_text(text):
     return text
 
 
-def translate_text(text: str, lang_tgt: str, retries: int = 3):
+def translate_text(translator, text: str, lang_tgt: str, retries: int = 3):
     fail_cnt = 0
     while fail_cnt < retries:
         try:
@@ -81,11 +82,11 @@ def translate_text(text: str, lang_tgt: str, retries: int = 3):
     return result
 
 
-def get_translated_text(translated_dict, text_id, text):
-    result = translated_dict.get(text_id, "")
+def get_translated_text(translator, translated_text_map, text_id, text):
+    result = translated_text_map.get(text_id, "")
     if not result:
-        tqdm.write(text_id)
-        result = translate_text(text, "en")
+        tqdm.write(f"Failed to get translated text: {text_id}")
+        result = translate_text(translator, text, "en")
     return result
 
 
@@ -109,20 +110,13 @@ def refine_images(root_dir: Path, path: Path):
 def check_valid_image(
     img_dict: Dict,
     img_ids: List[str],
-    post_id: str,
     invalid_img_set: Set[str],
-    mediaeval2015_data: pd.DataFrame,
 ) -> List[str]:
     """Filter out invalid images According to https://github.com/MKLab-ITI/image-verification-
     corpus/issues/4#issuecomment-1123350335, the images in the dataset could also present in the
     MediaEval 2015 dataset."""
     valid_img_list = []
-    img_ids_old = mediaeval2015_data.loc[
-        mediaeval2015_data["tweetId"] == post_id, "imageId(s)"
-    ].values.tolist()
-    if img_ids_old:
-        img_ids_old = img_ids_old[0].split(",")
-    img_ids_set = set(img_ids + img_ids_old)
+    img_ids_set = set(img_ids)
     for img_id in img_ids_set:
         img_id = img_id.strip()
         img_name = img_dict.get(img_id, "")
@@ -149,35 +143,35 @@ def get_event_name(image_id: str) -> str:
     event_name = re.sub("real", "", event_name)
     event_name = re.sub("[0-9_]", "", event_name)
     event_name = event_name.split(".")[0]
-    event_name = re.sub("[A-Z]+", "", event_name)
+    # event_name = re.sub("[A-Z]+", "", event_name)
     return event_name
 
 
 if __name__ == "__main__":
     dev_data = pd.read_csv(
-        root / "data/image-verification-corpus-master/mediaeval2016/devset/posts.txt",
+        root / "data/image-verification-corpus-master/mediaeval2015/devset/tweets.txt",
         delimiter="\t",
     )
 
     # %%
     test_data = pd.read_csv(
-        root / "data/image-verification-corpus-master/mediaeval2016/testset/posts_groundtruth.txt",
+        root / "data/image-verification-corpus-master/mediaeval2015/testset/tweets.txt",
         delimiter="\t",
     )
 
-    mediaeval_2015_data = pd.concat(
-        [
-            pd.read_csv(
-                root / "data/image-verification-corpus-master/mediaeval2015/devset/tweets.txt",
-                delimiter="\t",
-            ),
-            pd.read_csv(
-                root / "data/image-verification-corpus-master/mediaeval2015/testset/tweets.txt",
-                delimiter="\t",
-            ),
-        ],
-        axis=0,
-    )
+    # mediaeval_2015_data = pd.concat(
+    #     [
+    #         pd.read_csv(
+    #             root / "data/image-verification-corpus-master/mediaeval2015/devset/tweets.txt",
+    #             delimiter="\t",
+    #         ),
+    #         pd.read_csv(
+    #             root / "data/image-verification-corpus-master/mediaeval2015/testset/tweets.txt",
+    #             delimiter="\t",
+    #         ),
+    #     ],
+    #     axis=0,
+    # )
 
     # %%
     dev_data["label"] = dev_data.label.apply(lambda x: 0 if x == "real" else 1)
@@ -188,8 +182,8 @@ if __name__ == "__main__":
         root
         / "data/image-verification-corpus-master/mediaeval2015/devset/Medieval2015_DevSet_Images",
         root / "data/image-verification-corpus-master/mediaeval2015/testset/TestSetImages",
-        root
-        / "data/image-verification-corpus-master/mediaeval2016/testset/Mediaeval2016_TestSet_Images",
+        # root
+        # / "data/image-verification-corpus-master/mediaeval2016/testset/Mediaeval2016_TestSet_Images",
     ]
 
     # %%
@@ -201,7 +195,7 @@ if __name__ == "__main__":
     for img_path in img_path_list:
         cnt = 0
         for f in tqdm(img_path.glob("**/*"), desc=f"Refining images in {str(img_path)}"):
-            if f.suffix in [".txt"]:
+            if f.suffix in [".txt"] or f.is_dir():
                 continue
             else:
                 img = refine_images(img_save_path, f)
@@ -218,47 +212,48 @@ if __name__ == "__main__":
     dev_data["imgs"] = dev_data.apply(
         lambda x: check_valid_image(
             img_dict,
-            x["image_id(s)"].split(","),
-            x["post_id"],
+            x["imageId(s)"].split(","),
             invalid_img_set,
-            mediaeval_2015_data,
         ),
         axis=1,
     )
     test_data["imgs"] = test_data.apply(
-        lambda x: check_valid_image(
-            img_dict, x["image_id"].split(","), x["post_id"], invalid_img_set, mediaeval_2015_data
-        ),
+        lambda x: check_valid_image(img_dict, x["imageId(s)"].split(","), invalid_img_set),
         axis=1,
     )
     print(f"===== Invalid images: {len(invalid_img_set)} in total ======")
     print(invalid_img_set)
 
-    translated_train_data = pickle.load(
-        open(root / "data/image-verification-corpus-master/cleaned_train_text.pkl", "rb")
-    )
-    translated_test_data = pickle.load(
-        open(root / "data/image-verification-corpus-master/cleaned_test_text.pkl", "rb")
+    # translated_train_data = pickle.load(
+    #     open(root / "data/image-verification-corpus-master/cleaned_train_text.pkl", "rb")
+    # )
+    # translated_test_data = pickle.load(
+    #     open(root / "data/image-verification-corpus-master/cleaned_test_text.pkl", "rb")
+    # )
+    translated_text_map = json.load(
+        (root / "data/image-verification-corpus-master/translated_text_map.json").open("r")
     )
 
-    dev_data["text"] = dev_data.post_text.apply(lambda x: clean_text(x))
+    dev_data["text"] = dev_data.tweetText.apply(lambda x: clean_text(x))
     dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 0)]
     tqdm.pandas(desc="Detecting language")
     dev_data["lang"] = dev_data.text.progress_apply(lambda x: detection_lang(x))
 
-    test_data["text"] = test_data.post_text.apply(lambda x: clean_text(x))
+    test_data["text"] = test_data.tweetText.apply(lambda x: clean_text(x))
     test_data = test_data[test_data.text.apply(lambda x: len(x) > 0)]
     tqdm.pandas(desc="Detecting language")
     test_data["lang"] = test_data.text.progress_apply(lambda x: detection_lang(x))
 
     translator = google_translator(
-        proxies={"http": "172.22.112.1:7890", "https": "172.22.112.1:7890"},
+        proxies={"https": "172.22.112.1:7890"},
         timeout=5,
     )
 
     tqdm.pandas(desc="Translating text")
     dev_data["text"] = dev_data.progress_apply(
-        lambda x: get_translated_text(translated_train_data, str(x["post_id"]), x["text"])
+        lambda x: get_translated_text(
+            translator, translated_text_map, str(x["tweetId"]), x["text"]
+        )
         if x["lang"] != "en"
         else x["text"],
         axis=1,
@@ -266,7 +261,9 @@ if __name__ == "__main__":
 
     tqdm.pandas(desc="Translating text")
     test_data["text"] = test_data.progress_apply(
-        lambda x: get_translated_text(translated_test_data, str(x["post_id"]), x["text"])
+        lambda x: get_translated_text(
+            translator, translated_text_map, str(x["tweetId"]), x["text"]
+        )
         if x["lang"] != "en"
         else x["text"],
         axis=1,
@@ -285,6 +282,9 @@ if __name__ == "__main__":
     all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
     dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
     test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
+    print("===== Training events: ", dev_data_valid.event.unique().shape[0], " =====")
+    print("===== Testing events: ", test_data_valid.event.unique().shape[0], " =====")
+    print("===== Total events: ", all_data.event.unique().shape[0], " ======")
 
     print(
         "===== Saving data =====\n",
