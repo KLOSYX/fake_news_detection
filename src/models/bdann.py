@@ -4,10 +4,12 @@ original paper: https://dl.acm.org/doi/10.1145/3219819.3219903 original code:
 https://github.com/xiaolan98/BDANN-IJCNN2020
 """
 from pathlib import Path
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
 from einops import reduce
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch import nn
 from torch.autograd import Function, Variable
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
@@ -164,7 +166,43 @@ class BDANN(FakeNewsBase):
         class_loss = self.criterion(class_output, labels)
         domain_loss = self.criterion(domain_output, event_labels)
         loss = class_loss - domain_loss
-        return class_output, labels, loss
+        return class_output, labels, loss, class_loss, domain_loss
+
+    def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
+        logits, labels, loss, class_loss, domain_loss = self.forward_loss(batch)
+        preds = torch.argmax(logits, dim=1)  # (N,)
+        self.log_dict(
+            {
+                "train/loss": loss,
+                "train/class_loss": class_loss,
+                "train/domain_loss": domain_loss,
+            }
+        )
+        train_metrics_dict = self.train_metrics(preds, labels)
+        self.log_dict(train_metrics_dict)
+        return loss
+
+    def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
+        logits, labels, loss, class_loss, domain_loss = self.forward_loss(batch)
+        self.log_dict(
+            {
+                "val/loss": loss,
+                "val/class_loss": class_loss,
+                "val/domain_loss": domain_loss,
+            }
+        )
+        return (logits, labels)
+
+    def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
+        logits, labels, loss, class_loss, domain_loss = self.forward_loss(batch)
+        self.log_dict(
+            {
+                "test/loss": loss,
+                "test/class_loss": class_loss,
+                "test/domain_loss": domain_loss,
+            }
+        )
+        return (logits, labels)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -172,10 +210,11 @@ class BDANN(FakeNewsBase):
             lr=self.lr,
             weight_decay=0.1,
         )
-        scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer, lr_lambda=lambda epoch: 1 / (1.0 + 10 * float(epoch) / 100) ** 0.75
-        )
-        return [optimizer], [{"scheduler": scheduler, "interval": "epoch", "frequency": 1}]
+        # scheduler = torch.optim.lr_scheduler.LambdaLR(
+        #     optimizer, lr_lambda=lambda epoch: 1 / (1.0 + 10 * float(epoch) / 100) ** 0.75
+        # )
+        # return [optimizer], [{"scheduler": scheduler, "interval": "epoch", "frequency": 1}]
+        return [optimizer]
 
 
 if __name__ == "__main__":

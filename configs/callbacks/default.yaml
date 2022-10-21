@@ -3,6 +3,7 @@ defaults:
   - early_stopping.yaml
   - model_summary.yaml
   - rich_progress_bar.yaml
+  - lr_monitor.yaml
   - _self_
 
 model_checkpoint:
@@ -11,7 +12,7 @@ model_checkpoint:
   monitor: "val/acc"
   mode: "max"
   save_last: True
-  auto_insert_metric_name: False
+  auto_insert_metric_name: True
 
 early_stopping:
   monitor: "val/acc"
