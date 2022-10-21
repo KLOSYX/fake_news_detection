@@ -143,7 +143,7 @@ def get_event_name(image_id: str) -> str:
     event_name = re.sub("real", "", event_name)
     event_name = re.sub("[0-9_]", "", event_name)
     event_name = event_name.split(".")[0]
-    # event_name = re.sub("[A-Z]+", "", event_name)
+    event_name = re.sub("[A-Z]+", "", event_name)
     return event_name
 
 
