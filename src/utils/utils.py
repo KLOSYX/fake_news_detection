@@ -37,6 +37,7 @@ def task_wrapper(task_func: Callable) -> Callable:
         try:
             start_time = time.time()
             metric_dict, object_dict = task_func(cfg=cfg)
+            rich_utils.save_metrics_dict(cfg, metric_dict)
         except Exception as ex:
             log.exception("")  # save exception to `.log` file
             raise ex
