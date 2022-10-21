@@ -55,8 +55,10 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
 
     This method is wrapped in optional @task_wrapper decorator which applies extra utilities
     before and after the call.
+
     Args:
         cfg (DictConfig): Configuration composed by Hydra.
+
     Returns:
         Tuple[dict, dict]: Dict with metrics and dict with all instantiated objects.
     """
@@ -93,19 +95,7 @@ def evaluate(cfg: DictConfig) -> Tuple[dict, dict]:
     # for predictions use trainer.predict(...)
     # predictions = trainer.predict(model=model, dataloaders=dataloaders, ckpt_path=cfg.ckpt_path)
 
-    metric_dict = trainer.callback_metrics
-
-    # save metrics
-    metric = metrics_to_scalars(metric_dict)
-    if metric:
-        log.info("Saving fit and test metrics!")
-        metrics_str = json.dumps(metric, ensure_ascii=False, indent=2)
-
-        metrics_file = Path(trainer.log_dir) / "metrics.json"
-        with metrics_file.open("w") as f:
-            f.write(metrics_str)
-    else:
-        log.warning("No metrics to save!")
+    metric_dict = trainer.logged_metrics
 
     return metric_dict, object_dict
 

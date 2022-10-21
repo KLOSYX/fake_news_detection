@@ -44,6 +44,7 @@ def task_wrapper(task_func: Callable) -> Callable:
             path = Path(cfg.paths.output_dir, "exec_time.log")
             content = f"'{cfg.task_name}' execution time: {time.time() - start_time} (s)"
             # save task execution time (even if exception occurs)
+            rich_utils.save_metrics_dict(cfg, metric_dict)
             save_file(path, content)
             close_loggers()  # close loggers (even if exception occurs so multirun won't fail)
 
