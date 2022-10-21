@@ -52,14 +52,15 @@ log = utils.get_pylogger(__name__)
 
 @utils.task_wrapper
 def train(cfg: DictConfig) -> Tuple[dict, dict]:
-    """Trains the model.
-
-    Can additionally evaluate on a testset, using best weights obtained during
+    """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
     training.
+
     This method is wrapped in optional @task_wrapper decorator which applies extra utilities
     before and after the call.
+
     Args:
         cfg (DictConfig): Configuration composed by Hydra.
+
     Returns:
         Tuple[dict, dict]: Dict with metrics and dict with all instantiated objects.
     """
@@ -122,7 +123,8 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
         log.info("Saving fit and test metrics!")
         metrics_str = json.dumps(metric, ensure_ascii=False, indent=2)
 
-        with open(Path(cfg.paths.output_dir, "train_metrics.json"), "w") as f:
+        metrics_file = Path(trainer.log_dir) / "metrics.json"
+        with metrics_file.open("w") as f:
             f.write(metrics_str)
     else:
         log.warning("No metrics to save!")
