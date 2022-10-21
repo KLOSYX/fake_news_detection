@@ -107,17 +107,6 @@ def save_shell_command(cfg: DictConfig) -> None:
         rich.print(" ".join(sys.argv), file=file)
 
 
-@rank_zero_only
-def save_metrics_dict(cfg: DictConfig, metrics_dict: dict) -> None:
-    from pytorch_lightning.utilities.metrics import metrics_to_scalars
-
-    """Saves metrics dictionary to the output directory."""
-    # save metrics
-    metric = metrics_to_scalars(metrics_dict)
-    with open(Path(cfg.paths.output_dir, "metrics.json"), "w") as file:
-        rich.print(metric, file=file)
-
-
 if __name__ == "__main__":
     from hydra import compose, initialize
 

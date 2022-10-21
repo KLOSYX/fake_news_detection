@@ -1,3 +1,4 @@
+import json
 import time
 import warnings
 from importlib.util import find_spec
@@ -37,7 +38,7 @@ def task_wrapper(task_func: Callable) -> Callable:
         try:
             start_time = time.time()
             metric_dict, object_dict = task_func(cfg=cfg)
-            rich_utils.save_metrics_dict(cfg, metric_dict)
+            save_metrics_dict(cfg, metric_dict)
         except Exception as ex:
             log.exception("")  # save exception to `.log` file
             raise ex
@@ -45,7 +46,6 @@ def task_wrapper(task_func: Callable) -> Callable:
             path = Path(cfg.paths.output_dir, "exec_time.log")
             content = f"'{cfg.task_name}' execution time: {time.time() - start_time} (s)"
             # save task execution time (even if exception occurs)
-            rich_utils.save_metrics_dict(cfg, metric_dict)
             save_file(path, content)
             close_loggers()  # close loggers (even if exception occurs so multirun won't fail)
 
@@ -210,3 +210,18 @@ def close_loggers() -> None:
         if wandb.run:
             log.info("Closing wandb!")
             wandb.finish()
+
+
+@rank_zero_only
+def save_metrics_dict(cfg: DictConfig, metrics_dict: dict) -> None:
+    from pytorch_lightning.utilities.metrics import metrics_to_scalars
+
+    """Saves metrics dictionary to the output directory."""
+    # save metrics
+    metric = metrics_to_scalars(metrics_dict)
+    if metric:
+        log.info("Saving metrics...")
+        with open(Path(cfg.paths.output_dir, "metrics.json"), "w") as file:
+            json.dump(metric, file, indent=2, ensure_ascii=False)
+    else:
+        log.warning("No metrics found! Skipping metrics saving...")
