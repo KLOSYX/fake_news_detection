@@ -201,7 +201,7 @@ if __name__ == "__main__":
     for img_path in img_path_list:
         cnt = 0
         for f in tqdm(img_path.glob("**/*"), desc=f"Refining images in {str(img_path)}"):
-            if f.suffix in [".txt"]:
+            if f.suffix in [".txt"] or f.is_dir():
                 continue
             else:
                 img = refine_images(img_save_path, f)
@@ -285,6 +285,9 @@ if __name__ == "__main__":
     all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
     dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
     test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
+
+    print(f"===== Training event number: {len(set(dev_data_valid.event))} ======")
+    print(f"===== Testing event number: {len(set(test_data_valid.event))} ======")
 
     print(
         "===== Saving data =====\n",
