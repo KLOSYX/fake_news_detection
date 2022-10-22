@@ -45,7 +45,7 @@ callbacks:
     patience: 5
 
 model:
-  event_num: 40
+  event_num: 15
   hidden_dim: 32
   bert_name: ${bert_name_or_path}
   dropout: 0.5

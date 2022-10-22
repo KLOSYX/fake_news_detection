@@ -152,7 +152,7 @@ class BDANN(FakeNewsBase):
             bert_name,
             dropout,
         )
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss(ignore_index=-1)
         # self.domain_criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
@@ -165,7 +165,7 @@ class BDANN(FakeNewsBase):
         class_output, domain_output = self.forward(text_encodeds, img_encodeds)
         class_loss = self.criterion(class_output, labels)
         domain_loss = self.criterion(domain_output, event_labels)
-        loss = class_loss - domain_loss
+        loss = class_loss + domain_loss
         return class_output, labels, loss, class_loss, domain_loss
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
@@ -183,23 +183,21 @@ class BDANN(FakeNewsBase):
         return loss
 
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        logits, labels, loss, class_loss, domain_loss = self.forward_loss(batch)
+        logits, labels, _, class_loss, _ = self.forward_loss(batch)
         self.log_dict(
             {
-                "val/loss": loss,
+                "val/loss": class_loss,
                 "val/class_loss": class_loss,
-                "val/domain_loss": domain_loss,
             }
         )
         return (logits, labels)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        logits, labels, loss, class_loss, domain_loss = self.forward_loss(batch)
+        logits, labels, _, class_loss, _ = self.forward_loss(batch)
         self.log_dict(
             {
-                "test/loss": loss,
+                "test/loss": class_loss,
                 "test/class_loss": class_loss,
-                "test/domain_loss": domain_loss,
             }
         )
         return (logits, labels)
