@@ -57,20 +57,16 @@ class FakeNewsBase(pl.LightningModule):
         self.log_dict(train_metrics_dict)
         return loss
 
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        self.train_metrics.reset()
-
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         logits, labels, loss = self.forward_loss(batch)
         self.log_dict({"val/loss": loss})
         return (logits, labels)
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        self.val_metrics.reset()
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
         val_metrics_dict = self.val_metrics(preds, torch.cat(labels))
-        self.log_dict(val_metrics_dict, sync_dist=True)
+        self.log_dict(val_metrics_dict, sync_dist=True, on_epoch=True, on_step=False, prog_bar=True)
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         logits, labels, loss = self.forward_loss(batch)
@@ -78,7 +74,6 @@ class FakeNewsBase(pl.LightningModule):
         return (logits, labels)
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
-        self.test_metrics.reset()
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
         test_metrics_dict = self.test_metrics(preds, torch.cat(labels))
