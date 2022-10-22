@@ -280,14 +280,20 @@ if __name__ == "__main__":
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
     # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
 
-    all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
-    all_data["event"] = all_data.imgs.apply(get_event_name)
-    all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
-    dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
-    test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
+    # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
+    # all_data["event"] = all_data.imgs.apply(get_event_name)
+    # all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
+    # dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
+    # test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
+
+    # ===== Update: remove event in test dataset =====
+    dev_data_valid["event"] = dev_data_valid.imgs.apply(get_event_name)
+    dev_data_valid["event"] = np.argmax(pd.get_dummies(dev_data_valid.event).to_numpy(), axis=1)
+    test_data_valid["event"] = -1
+    # ===== end =====
 
     print(f"===== Training event number: {len(set(dev_data_valid.event))} ======")
-    print(f"===== Testing event number: {len(set(test_data_valid.event))} ======")
+    # print(f"===== Testing event number: {len(set(test_data_valid.event))} ======")
 
     print(
         "===== Saving data =====\n",
