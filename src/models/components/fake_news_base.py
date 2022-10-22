@@ -67,6 +67,7 @@ class FakeNewsBase(pl.LightningModule):
         return (logits, labels)
 
     def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        self.val_metrics.reset()
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
         val_metrics_dict = self.val_metrics(preds, torch.cat(labels))
@@ -89,6 +90,7 @@ class FakeNewsBase(pl.LightningModule):
         return (logits, labels)
 
     def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+        self.test_metrics.reset()
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
         test_metrics_dict = self.test_metrics(preds, torch.cat(labels))

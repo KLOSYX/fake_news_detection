@@ -11,6 +11,9 @@ from torchvision import transforms
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
 from src.datamodules.components.dm_base import DatamoduleBase
+from src.utils.pylogger import get_pylogger
+
+log = get_pylogger(__name__)
 
 
 class GaussianBlur:
@@ -265,8 +268,10 @@ class MultiModalData(DatamoduleBase):
             max_length=self.max_length,
         )
         if "event" not in self.dataset_name:
+            log.debug(f"Using Collector for {self.dataset_name}")
             return Collector(**params)
         else:
+            log.debug(f"Using CollectorWithEvent for {self.dataset_name}")
             return CollectorWithEvent(**params)
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
@@ -274,8 +279,12 @@ class MultiModalData(DatamoduleBase):
             img_path=self.img_path,
             data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
         )
-        if self.dataset_name == "twitter":
+        if "twitter" in self.dataset_name:
             params["simclr_trans"] = self.simclr_trans
+            if self.simclr_trans:
+                log.debug(f"Using simclr transform in {self.dataset_name}")
+            else:
+                log.debug(f"Not using simclr transform in {self.dataset_name}")
         return self.dataset_cls(**params)
 
 
