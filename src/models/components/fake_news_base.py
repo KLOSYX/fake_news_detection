@@ -13,6 +13,7 @@ class FakeNewsBase(pl.LightningModule):
         self.train_metrics = metrics.clone(prefix="train/")
         self.val_metrics = metrics.clone(prefix="val/")
         self.test_metrics = metrics.clone(prefix="test/")
+        self.val_best = torchmetrics.MaxMetric()
 
     def _get_metrics(
         self,
@@ -66,7 +67,18 @@ class FakeNewsBase(pl.LightningModule):
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
         val_metrics_dict = self.val_metrics(preds, torch.cat(labels))
-        self.log_dict(val_metrics_dict, sync_dist=True, on_epoch=True, on_step=False, prog_bar=True)
+        self.val_best(val_metrics_dict["val/Accuracy"])
+        self.log_dict(
+            val_metrics_dict, sync_dist=True, on_epoch=True, on_step=False, prog_bar=True
+        )
+        self.log(
+            "val_best",
+            self.val_best.compute(),
+            sync_dist=True,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         logits, labels, loss = self.forward_loss(batch)
