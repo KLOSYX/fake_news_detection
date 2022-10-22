@@ -13,6 +13,7 @@ class FakeNewsBase(pl.LightningModule):
         self.train_metrics = metrics.clone(prefix="train/")
         self.val_metrics = metrics.clone(prefix="val/")
         self.test_metrics = metrics.clone(prefix="test/")
+        self.val_best = torchmetrics.MaxMetric()
 
     def _get_metrics(
         self,
@@ -42,6 +43,9 @@ class FakeNewsBase(pl.LightningModule):
 
     def on_train_start(self):
         assert hasattr(self, "criterion"), "criterion not found"
+        # by default lightning executes validation step sanity checks before training starts,
+        # so we need to make sure val_acc_best doesn't store accuracy from these checks
+        self.val_best.reset()
 
     def forward_loss(self, batch):
         text_encodeds, img_encodeds, labels = batch
@@ -57,9 +61,6 @@ class FakeNewsBase(pl.LightningModule):
         self.log_dict(train_metrics_dict)
         return loss
 
-    def training_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        self.train_metrics.reset()
-
     def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         logits, labels, loss = self.forward_loss(batch)
         self.log_dict({"val/loss": loss})
@@ -70,7 +71,18 @@ class FakeNewsBase(pl.LightningModule):
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
         val_metrics_dict = self.val_metrics(preds, torch.cat(labels))
-        self.log_dict(val_metrics_dict, sync_dist=True)
+        self.val_best(val_metrics_dict["val/accuracy"])
+        self.log_dict(
+            val_metrics_dict, sync_dist=True, on_epoch=True, on_step=False, prog_bar=True
+        )
+        self.log(
+            "val_best",
+            self.val_best.compute(),
+            sync_dist=True,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=True,
+        )
 
     def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
         logits, labels, loss = self.forward_loss(batch)
