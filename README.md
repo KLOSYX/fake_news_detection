@@ -39,7 +39,7 @@ Preprocess data
 # download data
 # twitter: https://github.com/MKLab-ITI/image-verification-corpus
 # weibo: https://drive.google.com/file/d/14VQ7EWPiFeGzxp3XC2DeEHi-BEisDINn/view?usp=sharing
-# Extract the data to the data folder
+# extract the data to the data folder
 
 # preprocess twitter data
 python data/preprocess_twitter.py
