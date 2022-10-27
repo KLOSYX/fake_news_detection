@@ -95,3 +95,10 @@ class FakeNewsBase(pl.LightningModule):
         preds = torch.argmax(torch.cat(logits), dim=1)
         test_metrics_dict = self.test_metrics(preds, torch.cat(labels))
         self.log_dict(test_metrics_dict)
+
+    @staticmethod
+    def _freeze(module, verbose=False):
+        for n, p in module.named_parameters():
+            p.requires_grad = False
+            if verbose:
+                print("freeze", n)

@@ -75,13 +75,6 @@ class SpotFake(FakeNewsBase):
         # freeze bert
         self._freeze(self.bert)
 
-    @staticmethod
-    def _freeze(module, verbose=False):
-        for n, p in module.named_parameters():
-            p.requires_grad = False
-            if verbose:
-                print("freeze", n)
-
     def forward(self, text_encodeds, img_encodeds):
         vgg_out = self.vgg_model(img_encodeds)
         if self.pooler == "pooler_output":

@@ -8,9 +8,11 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import Dataset, random_split
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
 from src.datamodules.components.dm_base import DatamoduleBase
+from src.models.components.blip_base import init_tokenizer
 from src.utils.pylogger import get_pylogger
 
 log = get_pylogger(__name__)
@@ -214,6 +216,7 @@ class MultiModalData(DatamoduleBase):
         dataset_name: str = "weibo",
         use_test_as_val: bool = False,
         simclr_trans: bool = False,
+        use_blip: bool = False,
     ):
         assert dataset_name in [
             "weibo",
@@ -225,14 +228,17 @@ class MultiModalData(DatamoduleBase):
         self.img_path = img_path
         self.train_path = train_path
         self.test_path = test_path
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_name, cache_dir=Path.home() / ".cache"
+        self.tokenizer = (
+            AutoTokenizer.from_pretrained(tokenizer_name, cache_dir=Path.home() / ".cache")
+            if not use_blip
+            else init_tokenizer()
         )
         self.processor_name = processor_name
         self.max_length = max_length
         self.dataset_name = dataset_name
         self.use_test_as_val = use_test_as_val
         self.simclr_trans = simclr_trans
+        self.use_blip = use_blip
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
         elif dataset_name == "twitter":
@@ -285,7 +291,22 @@ class MultiModalData(DatamoduleBase):
                 log.debug(f"Using simclr transform in {self.dataset_name}")
             else:
                 log.debug(f"Not using simclr transform in {self.dataset_name}")
-        return self.dataset_cls(**params)
+        dataset_instance = self.dataset_cls(**params)
+        if self.use_blip:
+            dataset_instance.transforms = init_blip_image_transforms(224)
+        return dataset_instance
+
+
+def init_blip_image_transforms(image_size: int = 224) -> transforms.Compose:
+    return transforms.Compose(
+        [
+            transforms.Resize((image_size, image_size), interpolation=InterpolationMode.BICUBIC),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                (0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)
+            ),
+        ]
+    )
 
 
 # debug
