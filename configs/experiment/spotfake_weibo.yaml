@@ -16,7 +16,7 @@ defaults:
 task_name: spotfake_weibo
 tags: ["fakenews", "multimodal", "classify"]
 monitor: val/accuracy
-bert_name_or_path: hfl/chinese-roberta-wwm-ext
+bert_name_or_path: bert-base-uncased
 
 test: True
 
