@@ -56,73 +56,95 @@ def check_valid_image(img_root_dir: Path, img_path_list: list):
     return valid_img_list
 
 
-def main():
-    # refine images
-    target_directories = [
-        root / "data/MM17-WeiboRumorSet/nonrumor_images",
-        root / "data/MM17-WeiboRumorSet/rumor_images",
-    ]
+def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = True):
+    assert lang in ["cn", "en"], "lang must be cn or en."
     save_path = root / "data/MM17-WeiboRumorSet/images_filtered"
-    old2new = {}
-    for directory in target_directories:
-        directory = Path(directory)
-        for path in tqdm(directory.glob("*"), desc=f"refine images in {directory}"):
-            # if path.suffix in [".gif"]:
-            #     continue
-            old2new[str(path)] = refine_images(save_path, path)
+    # refine images
+    if is_refine_imgs:
+        target_directories = [
+            root / "data/MM17-WeiboRumorSet/nonrumor_images",
+            root / "data/MM17-WeiboRumorSet/rumor_images",
+        ]
+        old2new = {}
+        for directory in target_directories:
+            directory = Path(directory)
+            for path in tqdm(directory.glob("*"), desc=f"refine images in {directory}"):
+                # if path.suffix in [".gif"]:
+                #     continue
+                old2new[str(path)] = refine_images(save_path, path)
     # with open("old2new.txt", "w") as f:
     #     for old, new in old2new.items():
     #         f.write(f"{old} {new}\n")
 
-    # preprocess posts
-    file_list = [
-        root / "data/MM17-WeiboRumorSet/tweets/test_nonrumor.txt",
-        root / "data/MM17-WeiboRumorSet/tweets/test_rumor.txt",
-        root / "data/MM17-WeiboRumorSet/tweets/train_nonrumor.txt",
-        root / "data/MM17-WeiboRumorSet/tweets/train_rumor.txt",
-    ]
+    # ===== format posts =====
 
-    data_list = [read_data(file) for file in file_list]
+    if is_format_posts:
+        file_list = [
+            root / "data/MM17-WeiboRumorSet/tweets/test_nonrumor.txt",
+            root / "data/MM17-WeiboRumorSet/tweets/test_rumor.txt",
+            root / "data/MM17-WeiboRumorSet/tweets/train_nonrumor.txt",
+            root / "data/MM17-WeiboRumorSet/tweets/train_rumor.txt",
+        ]
 
-    format_data = {}
-    for split_name, data in zip(file_list, data_list):
-        name = str(split_name).split("/")[-1].split(".")[0]
-        format_data[name] = []
-        for i, d in enumerate(data):
-            if i % 3 == 0:
-                format_data[name].append({})
-                format_data[name][-1]["meta_data"] = d
-            if i % 3 == 1:
-                format_data[name][-1]["imgs"] = [img for img in d if img != "null"]
-            else:
-                format_data[name][-1]["title"] = d
-            format_data[name][-1]["label"] = 0 if "nonrumor" in name else 1
+        data_list = [read_data(file) for file in file_list]
 
-    for k, v in format_data.items():
-        with open(
-            root / "data" / "MM17-WeiboRumorSet" / f"{k}_format.json", "w", encoding="utf-8"
-        ) as outfile:
-            for d in v:
-                line = json.dumps(d, ensure_ascii=False)
-                outfile.write(line + "\n")
+        format_data = {}
+        for split_name, data in zip(file_list, data_list):
+            name = str(split_name).split("/")[-1].split(".")[0]
+            format_data[name] = []
+            for i, d in enumerate(data):
+                if i % 3 == 0:
+                    format_data[name].append({})
+                    format_data[name][-1]["meta_data"] = d
+                if i % 3 == 1:
+                    format_data[name][-1]["imgs"] = [img for img in d if img != "null"]
+                else:
+                    format_data[name][-1]["title"] = d
+                format_data[name][-1]["label"] = 0 if "nonrumor" in name else 1
 
-    json_file_list = [
-        root / "data/MM17-WeiboRumorSet/test_nonrumor_format.json",
-        root / "data/MM17-WeiboRumorSet/test_rumor_format.json",
-        root / "data/MM17-WeiboRumorSet/train_nonrumor_format.json",
-        root / "data/MM17-WeiboRumorSet/train_rumor_format.json",
-    ]
+        for k, v in format_data.items():
+            with open(
+                root / "data" / "MM17-WeiboRumorSet" / f"{k}_format.json", "w", encoding="utf-8"
+            ) as outfile:
+                for d in v:
+                    line = json.dumps(d, ensure_ascii=False)
+                    outfile.write(line + "\n")
 
-    dfs = [pd.read_json(file, lines=True) for file in json_file_list]
+    # ===== preprocess data =====
 
-    for df in dfs:
-        df["imgs"] = df.imgs.apply(lambda x: check_valid_image(save_path, x))
+    if lang == "cn":
+        json_file_list = [
+            root / "data/MM17-WeiboRumorSet/test_nonrumor_format.json",
+            root / "data/MM17-WeiboRumorSet/test_rumor_format.json",
+            root / "data/MM17-WeiboRumorSet/train_nonrumor_format.json",
+            root / "data/MM17-WeiboRumorSet/train_rumor_format.json",
+        ]
 
-    for df in dfs:
-        df["title"] = df.title.apply(lambda x: clean_str_sst("".join(x)))
+        dfs = [pd.read_json(file, lines=True) for file in json_file_list]
 
-    test_data = pd.concat(dfs[:2])
-    train_data = pd.concat(dfs[2:])
+        for df in dfs:
+            df["imgs"] = df.imgs.apply(lambda x: check_valid_image(save_path, x))
+
+        for df in dfs:
+            df["title"] = df.title.apply(lambda x: clean_str_sst("".join(x)))
+
+        test_data = pd.concat(dfs[:2])
+        train_data = pd.concat(dfs[2:])
+
+    else:
+        train_data = pd.read_json(
+            root / "data" / "MM17-WeiboRumorSet" / "train_data_tencent_translated_cleaned.json",
+            lines=True,
+        )
+        test_data = pd.read_json(
+            root / "data" / "MM17-WeiboRumorSet" / "test_data_tencent_translated_cleaned.json",
+            lines=True,
+        )
+        train_data["title"] = train_data.translated_text
+        test_data["title"] = test_data.translated_text
+
+        train_data["imgs"] = train_data.imgs.apply(lambda x: check_valid_image(save_path, x))
+        test_data["imgs"] = test_data.imgs.apply(lambda x: check_valid_image(save_path, x))
 
     print("train length:", len(train_data), "test length:", len(test_data))
 
@@ -156,4 +178,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument("--lang", type=str, default="cn")
+    parser.add_argument("--is_format_posts", action="store_true")
+    parser.add_argument("--is_refine_imgs", action="store_true")
+
+    args = parser.parse_args()
+
+    main(**vars(args))
