@@ -24,10 +24,9 @@ class SimpleBlip(FakeNewsBase):
         self.num_warmup_steps = num_warmup_steps
 
         # models
-        self.blip = blip_feature_extractor(pretrained=model_path,
-                                           med_config=med_config,
-                                           image_size=224,
-                                           vit="base")
+        self.blip = blip_feature_extractor(
+            pretrained=model_path, med_config=med_config, image_size=224, vit="base"
+        )
         self.classifier = nn.Sequential(
             nn.Linear(768, fc_hidden_size),
             # nn.BatchNorm1d(fc_hidden_size),
@@ -44,7 +43,9 @@ class SimpleBlip(FakeNewsBase):
         self._freeze(self.blip)
 
     def forward(self, text_encodeds, img_encodeds):
-        mm_features = self.blip(img_encodeds, text_encodeds, mode="multimodal")[:, 0, :]  # (N, 768)
+        mm_features = self.blip(img_encodeds, text_encodeds, mode="multimodal")[
+            :, 0, :
+        ]  # (N, 768)
         logits = self.classifier(mm_features)
         return logits
 

@@ -48,12 +48,11 @@ model:
   weight_decay: 0.05
   num_warmup_steps: 700
   dropout_prob: 0.0
-  model_path: /root/.cache/models--blip-base/model_base.pth
-  fc_hidden_size: 1024
+  fc_hidden_size: 2048
 
 datamodule:
   tokenizer_name: None
   num_workers: 1
   batch_size: 8
-  val_set_ratio: 0.1
+  val_set_ratio: 0.15
   use_blip: true
