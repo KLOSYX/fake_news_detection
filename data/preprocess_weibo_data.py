@@ -1,5 +1,4 @@
 import json
-import re
 from pathlib import Path
 
 import pandas as pd
@@ -7,14 +6,11 @@ import pyrootutils
 from PIL import Image
 from tqdm import tqdm
 
-root = pyrootutils.setup_root(".")
+root = pyrootutils.setup_root(".", pythonpath=True)
+
+from src.utils.data_util import clean_text
+
 pd.options.mode.chained_assignment = None  # default='warn'
-
-
-def clean_str_sst(string: str):
-    """Tokenization/string cleaning for the SST dataset."""
-    string = re.sub("[，。 :,.；|-“”——_/nbsp+&;@、《》～（）())#O！：【】]", "", string)
-    return string.strip().lower()
 
 
 def refine_images(root_dir: Path, path: Path):
@@ -126,7 +122,7 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
             df["imgs"] = df.imgs.apply(lambda x: check_valid_image(save_path, x))
 
         for df in dfs:
-            df["title"] = df.title.apply(lambda x: clean_str_sst("".join(x)))
+            df["title"] = df.title.apply(lambda x: clean_text("".join(x)))
 
         test_data = pd.concat(dfs[:2])
         train_data = pd.concat(dfs[2:])
@@ -140,8 +136,8 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
             root / "data" / "MM17-WeiboRumorSet" / "test_data_tencent_translated_cleaned.json",
             lines=True,
         )
-        train_data["title"] = train_data.translated_text
-        test_data["title"] = test_data.translated_text
+        train_data["title"] = train_data.translated_text.apply(clean_text)
+        test_data["title"] = test_data.translated_text.apply(clean_text)
 
         train_data["imgs"] = train_data.imgs.apply(lambda x: check_valid_image(save_path, x))
         test_data["imgs"] = test_data.imgs.apply(lambda x: check_valid_image(save_path, x))
