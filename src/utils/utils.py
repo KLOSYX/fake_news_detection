@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict
 from pytorch_lightning import Callback
 from pytorch_lightning.loggers import LightningLoggerBase
 from pytorch_lightning.utilities import rank_zero_only
@@ -88,6 +88,24 @@ def extras(cfg: DictConfig) -> None:
     if cfg.extras.get("save_shell_commands"):
         log.info("Saving shell commands! <cfg.extras.save_shell_commands=True>")
         rich_utils.save_shell_command(cfg)
+
+    # remove logger depend callbacks if logger is empty
+    if not cfg.get("logger", ""):
+        logger_depend_callbacks = [
+            "LearningRateMonitor",
+        ]
+        log.warning("Logger is empty, checking if there is any logger depend callback!")
+        callbacks_cfg: DictConfig = cfg.get("callbacks", "")
+        if callbacks_cfg:
+            for cb_name, cb_conf in callbacks_cfg.items():
+                if (
+                    isinstance(cb_conf, DictConfig)
+                    and "_target_" in cb_conf
+                    and cb_conf.get("_target_").split(".")[-1] in logger_depend_callbacks
+                ):
+                    log.warning(f"Removing <{cb_conf._target_}>!")
+                    with open_dict(callbacks_cfg):
+                        callbacks_cfg.pop(cb_name, None)
 
 
 @rank_zero_only
