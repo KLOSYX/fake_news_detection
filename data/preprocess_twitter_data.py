@@ -14,6 +14,7 @@ from tqdm import tqdm
 root = pyrootutils.setup_root(".", pythonpath=True)
 
 from src.utils.data_util import clean_text
+from src.utils.data_util.english_preprocessor import EnglishProcessor
 from src.utils.google_trans_new.google_trans_new import google_translator
 
 DetectorFactory.seed = 0
@@ -194,13 +195,15 @@ if __name__ == "__main__":
         open(root / "data/image-verification-corpus-master/cleaned_test_text.pkl", "rb")
     )
 
-    dev_data["text"] = dev_data.post_text.apply(lambda x: clean_text(x))
-    dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 0)]
+    preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
+
+    dev_data["text"] = dev_data.post_text.apply(clean_text)
+    dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 10)]
     tqdm.pandas(desc="Detecting language")
     dev_data["lang"] = dev_data.text.progress_apply(lambda x: detection_lang(x))
 
-    test_data["text"] = test_data.post_text.apply(lambda x: clean_text(x))
-    test_data = test_data[test_data.text.apply(lambda x: len(x) > 0)]
+    test_data["text"] = test_data.post_text.apply(clean_text)
+    test_data = test_data[test_data.text.apply(lambda x: len(x) > 10)]
     tqdm.pandas(desc="Detecting language")
     test_data["lang"] = test_data.text.progress_apply(lambda x: detection_lang(x))
 
@@ -228,10 +231,12 @@ if __name__ == "__main__":
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
     dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
+    dev_data_valid["text"] = dev_data_valid.text.apply(lambda x: preprocessor(x))
 
     test_data_valid = test_data[test_data.imgs.apply(len) > 0]
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
     # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
+    test_data_valid["text"] = test_data_valid.text.apply(lambda x: preprocessor(x))
 
     # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
     # all_data["event"] = all_data.imgs.apply(get_event_name)

@@ -9,6 +9,7 @@ from tqdm import tqdm
 root = pyrootutils.setup_root(".", pythonpath=True)
 
 from src.utils.data_util import clean_text
+from src.utils.data_util.english_preprocessor import EnglishProcessor
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -128,6 +129,7 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
         train_data = pd.concat(dfs[2:])
 
     else:
+        preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
         train_data = pd.read_json(
             root / "data" / "MM17-WeiboRumorSet" / "train_data_tencent_translated_cleaned.json",
             lines=True,
@@ -136,8 +138,10 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
             root / "data" / "MM17-WeiboRumorSet" / "test_data_tencent_translated_cleaned.json",
             lines=True,
         )
-        train_data["title"] = train_data.translated_text.apply(clean_text)
-        test_data["title"] = test_data.translated_text.apply(clean_text)
+        train_data["title"] = train_data.translated_text.apply(
+            lambda x: preprocessor(clean_text(x))
+        )
+        test_data["title"] = test_data.translated_text.apply(lambda x: preprocessor(clean_text(x)))
 
         train_data["imgs"] = train_data.imgs.apply(lambda x: check_valid_image(save_path, x))
         test_data["imgs"] = test_data.imgs.apply(lambda x: check_valid_image(save_path, x))
