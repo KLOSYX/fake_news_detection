@@ -12,7 +12,7 @@ model_checkpoint:
   monitor: "val/acc"
   mode: "max"
   save_last: True
-  auto_insert_metric_name: True
+  auto_insert_metric_name: False
 
 early_stopping:
   monitor: "val/acc"
