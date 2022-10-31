@@ -6,4 +6,5 @@ num_warmup_steps: 700
 dropout_prob: 0.5
 model_path: /home/anbinx/.cache/models--blip-base/model_base.pth
 med_config: /home/anbinx/.cache/models--blip-base/med_config.json
-fc_hidden_size: 2048
+fc_hidden_size: 256
+is_freeze_blip: false

@@ -11,11 +11,12 @@ class SimpleBlip(FakeNewsBase):
         self,
         model_path: str,
         med_config: str,
-        fc_hidden_size: int = 2048,
+        fc_hidden_size: int = 256,
         dropout_prob: float = 0.2,
         lr: float = 0.001,
         weight_decay: float = 0.05,
         num_warmup_steps: int = 400,
+        is_freeze_blip: bool = True,
     ):
         super().__init__()
         # hyper parameters
@@ -40,7 +41,8 @@ class SimpleBlip(FakeNewsBase):
         )
         self.criterion = nn.CrossEntropyLoss()
 
-        self._freeze(self.blip)
+        if is_freeze_blip:
+            self._freeze(self.blip)
 
     def forward(self, text_encodeds, img_encodeds):
         mm_features = self.blip(img_encodeds, text_encodeds, mode="multimodal")[
