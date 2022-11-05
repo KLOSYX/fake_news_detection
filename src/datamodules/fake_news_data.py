@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -70,19 +70,17 @@ class GaussianBlur:
 
 
 class WeiboDataset(Dataset):
-    def __init__(self, img_path: str, data_path: str) -> None:
-        assert isinstance(img_path, str) and isinstance(data_path, str), "path must be a string"
+    def __init__(
+        self,
+        img_path: Union[str, Path],
+        data_path: Union[str, Path],
+        transforms: Optional[transforms.Compose],
+    ) -> None:
+        assert img_path and data_path, "img_path and data_path must be provided"
         self.data = pd.read_json(data_path, lines=True)
         self.img_path = Path(img_path)
         # apply image transforms
-        self.transforms = transforms.Compose(
-            [
-                transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
+        self.transforms = transforms
         print("data size:", len(self.data))
 
     def __len__(self) -> int:
@@ -96,14 +94,20 @@ class WeiboDataset(Dataset):
         label = self.data.iloc[idx]["label"]
         return (
             text,
-            self.transforms(img).unsqueeze(0),
+            self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
         )
 
 
 class TwitterDataset(WeiboDataset):
-    def __init__(self, img_path: str, data_path: str, simclr_trans: bool = True) -> None:
-        super().__init__(img_path, data_path)
+    def __init__(
+        self,
+        img_path: str,
+        data_path: str,
+        simclr_trans: bool = True,
+        transforms: Optional[transforms.Compose] = None,
+    ) -> None:
+        super().__init__(img_path, data_path, transforms)
         if simclr_trans:
             self.transforms = self.get_simclr_pipeline_transform(224)
 
@@ -115,7 +119,7 @@ class TwitterDataset(WeiboDataset):
         label = self.data.iloc[idx]["label"]
         return (
             text,
-            self.transforms(img).unsqueeze(0),
+            self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
         )
 
@@ -147,20 +151,16 @@ class TwitterDatasetWithEvent(TwitterDataset):
         event_label = self.data.iloc[idx]["event"]
         return (
             text,
-            self.transforms(img).unsqueeze(0),
+            self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
             torch.tensor([event_label], dtype=torch.long),
         )
 
 
 class Collector:
-    def __init__(self, tokenizer: Any, processor: Optional[str], max_length: int = 200) -> None:
+    def __init__(self, tokenizer: Any, processor: Optional[Any], max_length: int = 200) -> None:
         self.tokenizer = tokenizer
-        self.processor = (
-            AutoFeatureExtractor.from_pretrained(processor, cache_dir=Path.home() / ".cache")
-            if processor is not None
-            else None
-        )
+        self.processor = processor
         self.max_length = max_length
 
     def __call__(self, data: List) -> Tuple:
@@ -173,7 +173,9 @@ class Collector:
             return_tensors="pt",
         )
         img_encodeds = (
-            self.processor(imgs) if self.processor is not None else torch.cat(imgs, dim=0)
+            self.processor(imgs, return_tensors="pt")
+            if self.processor is not None
+            else torch.cat(imgs, dim=0)
         )
         # image agumentation here, todo...
         labels = torch.cat(labels)
@@ -191,7 +193,9 @@ class CollectorWithEvent(Collector):
             return_tensors="pt",
         )
         img_encodeds = (
-            self.processor(imgs) if self.processor is not None else torch.cat(imgs, dim=0)
+            self.processor(imgs, return_tensors="pt")
+            if self.processor is not None
+            else torch.cat(imgs, dim=0)
         )
         # image agumentation here, todo...
         labels = torch.cat(labels)
@@ -214,6 +218,7 @@ class MultiModalData(DatamoduleBase):
         dataset_name: str = "weibo",
         use_test_as_val: bool = False,
         simclr_trans: bool = False,
+        vis_model_type: str = "vgg",
     ):
         assert dataset_name in [
             "weibo",
@@ -228,11 +233,14 @@ class MultiModalData(DatamoduleBase):
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name, cache_dir=Path.home() / ".cache"
         )
-        self.processor_name = processor_name
+        self.processor = AutoFeatureExtractor.from_pretrained(
+            processor_name, cache_dir=Path.home() / ".cache"
+        )
         self.max_length = max_length
         self.dataset_name = dataset_name
         self.use_test_as_val = use_test_as_val
         self.simclr_trans = simclr_trans
+        self.vis_model_type = vis_model_type
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
         elif dataset_name == "twitter":
@@ -264,7 +272,7 @@ class MultiModalData(DatamoduleBase):
     def _get_collector(self) -> Any:
         params = dict(
             tokenizer=self.tokenizer,
-            processor=self.processor_name,
+            processor=self.processor,
             max_length=self.max_length,
         )
         if "event" not in self.dataset_name:
@@ -278,6 +286,7 @@ class MultiModalData(DatamoduleBase):
         params = dict(
             img_path=self.img_path,
             data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
+            transforms=self._get_transforms(self.vis_model_type),
         )
         if "twitter" in self.dataset_name:
             params["simclr_trans"] = self.simclr_trans
@@ -286,6 +295,21 @@ class MultiModalData(DatamoduleBase):
             else:
                 log.debug(f"Not using simclr transform in {self.dataset_name}")
         return self.dataset_cls(**params)
+
+    @staticmethod
+    def _get_transforms(vis_model_type: str = "vgg") -> transforms.Compose:
+        if vis_model_type == "vgg":
+            trans = transforms.Compose(
+                [
+                    transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
+                    transforms.CenterCrop(224),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
+        else:
+            trans = None
+        return trans
 
 
 # debug

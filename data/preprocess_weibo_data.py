@@ -181,7 +181,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
-    parser.add_argument("--lang", type=str, default="cn")
+    parser.add_argument("--lang", type=str, default="en")
     parser.add_argument("--is_format_posts", action="store_true")
     parser.add_argument("--is_refine_imgs", action="store_true")
 
