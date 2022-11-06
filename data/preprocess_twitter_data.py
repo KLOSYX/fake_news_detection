@@ -236,8 +236,12 @@ def main(args):
     # filter text that is shorter than 10
     if args.min_text_length > 0:
         min_text_length = args.min_text_length
-        dev_data_valid = dev_data_valid[dev_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)]
-        test_data_valid = test_data_valid[test_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)]
+        dev_data_valid = dev_data_valid[
+            dev_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)
+        ]
+        test_data_valid = test_data_valid[
+            test_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)
+        ]
 
     # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
     # all_data["event"] = all_data.imgs.apply(get_event_name)

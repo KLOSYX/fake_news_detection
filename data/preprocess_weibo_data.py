@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 from argparse import Namespace
+from pathlib import Path
 
 import pandas as pd
 import pyrootutils
@@ -138,13 +138,13 @@ def main(args: Namespace):
             root / "data" / "MM17-WeiboRumorSet" / "test_data_tencent_translated_cleaned.json",
             lines=True,
         )
-        train_data["text"] = train_data.translated_text.apply(
-            lambda x: clean_text(x)
-        )
+        train_data["text"] = train_data.translated_text.apply(lambda x: clean_text(x))
         test_data["text"] = test_data.translated_text.apply(lambda x: clean_text(x))
 
         if args.use_strict_preprocessor > 0:
-            preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
+            preprocessor = EnglishProcessor(
+                min_len=0, stopwords_path=root / "data" / "stopwords.txt"
+            )
             train_data["text"] = train_data.text.apply(lambda x: preprocessor(x))
             test_data["text"] = test_data.text.apply(lambda x: preprocessor(x))
 

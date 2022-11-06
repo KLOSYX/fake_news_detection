@@ -7,3 +7,4 @@ fc_dropout_prob: 0.0
 model_name: dandelin/vilt-b32-mlm
 pooler: cls_token
 num_warmup_steps: 200
+fine_tune_last_n_layers: 0

@@ -19,6 +19,7 @@ class ViLT(FakeNewsBase):
         fc_dropout_prob: float = 0.0,
         num_warmup_steps: int = 200,
         freeze_backbone: bool = True,
+        fine_tune_last_n_layers: int = 0,
     ):
         super().__init__()
 
@@ -43,6 +44,12 @@ class ViLT(FakeNewsBase):
         if freeze_backbone:
             for _, p in self.model.named_parameters():
                 p.requires_grad = False
+            if fine_tune_last_n_layers > 0:
+                assert (
+                    0 <= fine_tune_last_n_layers <= 11
+                ), "fine_tune_last_n_layers must be in [0, 11]"
+                for _, p in self.model.encoder.layer[-fine_tune_last_n_layers:].named_parameters():
+                    p.requires_grad = True
 
         # criterion
         self.criterion = nn.CrossEntropyLoss()
