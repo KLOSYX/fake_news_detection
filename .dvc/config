@@ -1,5 +1,5 @@
 [core]
     remote = aliyun
 ['remote "aliyun"']
-    url = oss://anbinx-mldata/fake_news_detection
-    oss_endpoint = oss-cn-hongkong.aliyuncs.com
+    url = oss://anbinx-mldata-cn/fake_news_detection
+    oss_endpoint = oss-cn-hangzhou.aliyuncs.com

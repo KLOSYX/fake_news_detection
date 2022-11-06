@@ -90,7 +90,8 @@ class ViLT(FakeNewsBase):
             optimizer_grouped_parameters, lr=self.learning_rate, weight_decay=self.weight_decay
         )
         scheduler = transformers.get_constant_schedule_with_warmup(
-            optimizer, num_warmup_steps=self.num_warmup_steps,
+            optimizer,
+            num_warmup_steps=self.num_warmup_steps,
         )
         return [optimizer], [{"scheduler": scheduler, "interval": "step"}]
 
