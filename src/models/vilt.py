@@ -18,6 +18,7 @@ class ViLT(FakeNewsBase):
         fc_hidden_size: int = 256,
         fc_dropout_prob: float = 0.0,
         num_warmup_steps: int = 200,
+        freeze_backbone: bool = True,
     ):
         super().__init__()
 
@@ -39,8 +40,9 @@ class ViLT(FakeNewsBase):
             nn.Dropout(self.fc_dropout_prob),
             nn.Linear(fc_hidden_size, 2),
         )
-        for _, p in self.model.named_parameters():
-            p.requires_grad = False
+        if freeze_backbone:
+            for _, p in self.model.named_parameters():
+                p.requires_grad = False
 
         # criterion
         self.criterion = nn.CrossEntropyLoss()
