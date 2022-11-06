@@ -264,7 +264,7 @@ def main(args):
         "\n",
     )
 
-    dev_data_valid[["text", "imgs", "event"]].to_json(
+    dev_data_valid[["text", "imgs", "event", "label"]].to_json(
         root / "data/image-verification-corpus-master/train_posts.json",
         lines=True,
         orient="records",
