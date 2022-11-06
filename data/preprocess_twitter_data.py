@@ -270,7 +270,7 @@ def main(args):
         orient="records",
         force_ascii=False,
     )
-    test_data_valid[["text", "imgs", "event"]].to_json(
+    test_data_valid[["text", "imgs", "event", "label"]].to_json(
         root / "data/image-verification-corpus-master/test_posts.json",
         lines=True,
         orient="records",

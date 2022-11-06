@@ -174,13 +174,13 @@ def main(args: Namespace):
         len(test_data_with_img),
     )
 
-    train_data_with_img[["text", "imgs"]].to_json(
+    train_data_with_img[["text", "imgs", "label"]].to_json(
         root / "data/MM17-WeiboRumorSet/train_data.json",
         lines=True,
         orient="records",
         force_ascii=False,
     )
-    test_data_with_img[["text", "imgs"]].to_json(
+    test_data_with_img[["text", "imgs", "label"]].to_json(
         root / "data/MM17-WeiboRumorSet/test_data.json",
         lines=True,
         orient="records",
