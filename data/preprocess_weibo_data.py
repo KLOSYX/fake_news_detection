@@ -148,6 +148,10 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
 
     print("train length:", len(train_data), "test length:", len(test_data))
 
+    # filter text that is too short
+    train_data = train_data[train_data.title.apply(lambda x: len(x.split()) > 10)]
+    test_data = test_data[test_data.title.apply(lambda x: len(x.split()) > 10)]
+
     train_data_with_img = train_data[train_data.imgs.apply(len) > 0]
     train_data_with_img["imgs"] = train_data_with_img.imgs.apply(lambda x: x[0])
     train_data_with_img = train_data_with_img.drop_duplicates(subset=["title", "imgs"])

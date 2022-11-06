@@ -100,17 +100,6 @@ class WeiboDataset(Dataset):
 
 
 class TwitterDataset(WeiboDataset):
-    def __init__(
-        self,
-        img_path: str,
-        data_path: str,
-        simclr_trans: bool = True,
-        transforms: Optional[transforms.Compose] = None,
-    ) -> None:
-        super().__init__(img_path, data_path, transforms)
-        if simclr_trans:
-            self.transforms = self.get_simclr_pipeline_transform(224)
-
     def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
         text = self.data.iloc[idx]["text"]
         img_name = self.data.iloc[idx]["imgs"]
@@ -122,23 +111,6 @@ class TwitterDataset(WeiboDataset):
             self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
         )
-
-    @staticmethod
-    def get_simclr_pipeline_transform(size, s=1):
-        """Return a set of data augmentation transformations as described in the SimCLR paper."""
-        color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
-        data_transforms = transforms.Compose(
-            [
-                transforms.RandomResizedCrop(size=size),
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomApply([color_jitter], p=0.8),
-                transforms.RandomGrayscale(p=0.2),
-                GaussianBlur(kernel_size=int(0.1 * size)),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-            ]
-        )
-        return data_transforms
 
 
 class TwitterDatasetWithEvent(TwitterDataset):
@@ -233,8 +205,10 @@ class MultiModalData(DatamoduleBase):
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name, cache_dir=Path.home() / ".cache"
         )
-        self.processor = AutoFeatureExtractor.from_pretrained(
-            processor_name, cache_dir=Path.home() / ".cache"
+        self.processor = (
+            AutoFeatureExtractor.from_pretrained(processor_name, cache_dir=Path.home() / ".cache")
+            if processor_name
+            else None
         )
         self.max_length = max_length
         self.dataset_name = dataset_name
@@ -288,12 +262,11 @@ class MultiModalData(DatamoduleBase):
             data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
             transforms=self._get_transforms(self.vis_model_type),
         )
-        if "twitter" in self.dataset_name:
-            params["simclr_trans"] = self.simclr_trans
-            if self.simclr_trans:
-                log.debug(f"Using simclr transform in {self.dataset_name}")
-            else:
-                log.debug(f"Not using simclr transform in {self.dataset_name}")
+        if self.simclr_trans:
+            log.debug(f"Using simclr transform in {self.dataset_name}")
+            params["transforms"] = self._get_simclr_pipeline_transform(224)
+        else:
+            log.debug(f"Not using simclr transform in {self.dataset_name}")
         return self.dataset_cls(**params)
 
     @staticmethod
@@ -310,6 +283,23 @@ class MultiModalData(DatamoduleBase):
         else:
             trans = None
         return trans
+
+    @staticmethod
+    def _get_simclr_pipeline_transform(size, s=1):
+        """Return a set of data augmentation transformations as described in the SimCLR paper."""
+        color_jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
+        data_transforms = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(size=size),
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomApply([color_jitter], p=0.8),
+                transforms.RandomGrayscale(p=0.2),
+                GaussianBlur(kernel_size=int(0.1 * size)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            ]
+        )
+        return data_transforms
 
 
 # debug

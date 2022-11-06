@@ -238,6 +238,10 @@ if __name__ == "__main__":
     # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
     test_data_valid["text"] = test_data_valid.text.apply(lambda x: preprocessor(x))
 
+    # filter text that is shorter than 10
+    dev_data_valid = dev_data_valid[dev_data_valid.text.apply(lambda x: len(x.split()) > 10)]
+    test_data_valid = test_data_valid[test_data_valid.text.apply(lambda x: len(x.split()) > 10)]
+
     # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
     # all_data["event"] = all_data.imgs.apply(get_event_name)
     # all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
