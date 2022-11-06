@@ -57,7 +57,7 @@ class ViLT(FakeNewsBase):
             bert_out = outputs.pooler_output
         else:
             attention_mask: torch.Tensor = torch.concat(
-                [text_encodeds["attention_mask"], img_encodeds["attention_mask"]], dim=1
+                [text_encodeds["attention_mask"], img_encodeds["pixel_mask"]], dim=1
             )
             sequence_out: torch.Tensor = outputs.last_hidden_state  # [N, L, d]
             input_mask_expanded: torch.Tensor = (
