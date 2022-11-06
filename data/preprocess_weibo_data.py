@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from argparse import Namespace
 
 import pandas as pd
 import pyrootutils
@@ -53,11 +54,11 @@ def check_valid_image(img_root_dir: Path, img_path_list: list):
     return valid_img_list
 
 
-def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = True):
-    assert lang in ["cn", "en"], "lang must be cn or en."
+def main(args: Namespace):
+    assert args.lang in ["cn", "en"], "lang must be cn or en."
     save_path = root / "data/MM17-WeiboRumorSet/images_filtered"
     # refine images
-    if is_refine_imgs:
+    if args.is_refine_imgs:
         target_directories = [
             root / "data/MM17-WeiboRumorSet/nonrumor_images",
             root / "data/MM17-WeiboRumorSet/rumor_images",
@@ -75,7 +76,7 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
 
     # ===== format posts =====
 
-    if is_format_posts:
+    if args.reload_data:
         file_list = [
             root / "data/MM17-WeiboRumorSet/tweets/test_nonrumor.txt",
             root / "data/MM17-WeiboRumorSet/tweets/test_rumor.txt",
@@ -109,7 +110,7 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
 
     # ===== preprocess data =====
 
-    if lang == "cn":
+    if args.lang == "cn":
         json_file_list = [
             root / "data/MM17-WeiboRumorSet/test_nonrumor_format.json",
             root / "data/MM17-WeiboRumorSet/test_rumor_format.json",
@@ -123,13 +124,12 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
             df["imgs"] = df.imgs.apply(lambda x: check_valid_image(save_path, x))
 
         for df in dfs:
-            df["title"] = df.title.apply(lambda x: clean_text("".join(x)))
+            df["text"] = df.title.apply(lambda x: clean_text("".join(x)))
 
         test_data = pd.concat(dfs[:2])
         train_data = pd.concat(dfs[2:])
 
     else:
-        preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
         train_data = pd.read_json(
             root / "data" / "MM17-WeiboRumorSet" / "train_data_tencent_translated_cleaned.json",
             lines=True,
@@ -138,10 +138,15 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
             root / "data" / "MM17-WeiboRumorSet" / "test_data_tencent_translated_cleaned.json",
             lines=True,
         )
-        train_data["title"] = train_data.translated_text.apply(
-            lambda x: preprocessor(clean_text(x))
+        train_data["text"] = train_data.translated_text.apply(
+            lambda x: clean_text(x)
         )
-        test_data["title"] = test_data.translated_text.apply(lambda x: preprocessor(clean_text(x)))
+        test_data["text"] = test_data.translated_text.apply(lambda x: clean_text(x))
+
+        if args.use_strict_preprocessor > 0:
+            preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
+            train_data["text"] = train_data.text.apply(lambda x: preprocessor(x))
+            test_data["text"] = test_data.text.apply(lambda x: preprocessor(x))
 
         train_data["imgs"] = train_data.imgs.apply(lambda x: check_valid_image(save_path, x))
         test_data["imgs"] = test_data.imgs.apply(lambda x: check_valid_image(save_path, x))
@@ -149,16 +154,18 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
     print("train length:", len(train_data), "test length:", len(test_data))
 
     # filter text that is too short
-    train_data = train_data[train_data.title.apply(lambda x: len(x.split()) > 10)]
-    test_data = test_data[test_data.title.apply(lambda x: len(x.split()) > 10)]
+    if args.min_text_length > 0:
+        min_text_length = args.min_text_length
+        train_data = train_data[train_data.title.apply(lambda x: len(x.split()) > min_text_length)]
+        test_data = test_data[test_data.title.apply(lambda x: len(x.split()) > min_text_length)]
 
     train_data_with_img = train_data[train_data.imgs.apply(len) > 0]
     train_data_with_img["imgs"] = train_data_with_img.imgs.apply(lambda x: x[0])
-    train_data_with_img = train_data_with_img.drop_duplicates(subset=["title", "imgs"])
+    train_data_with_img = train_data_with_img.drop_duplicates(subset=["text", "imgs"])
 
     test_data_with_img = test_data[test_data.imgs.apply(len) > 0]
     test_data_with_img["imgs"] = test_data_with_img.imgs.apply(lambda x: x[0])
-    # test_data_with_img = test_data_with_img.drop_duplicates(subset=["title", "imgs"])
+    # test_data_with_img = test_data_with_img.drop_duplicates(subset=["text", "imgs"])
 
     print(
         "train length with image:",
@@ -167,13 +174,13 @@ def main(lang: str = "cn", is_refine_imgs: bool = True, is_format_posts: bool = 
         len(test_data_with_img),
     )
 
-    train_data_with_img.to_json(
+    train_data_with_img[["text", "imgs"]].to_json(
         root / "data/MM17-WeiboRumorSet/train_data.json",
         lines=True,
         orient="records",
         force_ascii=False,
     )
-    test_data_with_img.to_json(
+    test_data_with_img[["text", "imgs"]].to_json(
         root / "data/MM17-WeiboRumorSet/test_data.json",
         lines=True,
         orient="records",
@@ -186,9 +193,11 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument("--lang", type=str, default="en")
-    parser.add_argument("--is_format_posts", action="store_true")
+    parser.add_argument("--reload_data", action="store_true")
     parser.add_argument("--is_refine_imgs", action="store_true")
+    parser.add_argument("--use_strict_preprocessor", action="store_true")
+    parser.add_argument("--min_text_length", type=int, default=0)
 
     args = parser.parse_args()
 
-    main(**vars(args))
+    main(args)

@@ -107,7 +107,7 @@ def get_event_name(image_id: str) -> str:
     return event_name
 
 
-if __name__ == "__main__":
+def main(args):
     dev_data = pd.read_csv(
         root / "data/image-verification-corpus-master/mediaeval2016/devset/posts.txt",
         delimiter="\t",
@@ -195,8 +195,6 @@ if __name__ == "__main__":
         open(root / "data/image-verification-corpus-master/cleaned_test_text.pkl", "rb")
     )
 
-    preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
-
     dev_data["text"] = dev_data.post_text.apply(clean_text)
     dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 10)]
     tqdm.pandas(desc="Detecting language")
@@ -206,11 +204,6 @@ if __name__ == "__main__":
     test_data = test_data[test_data.text.apply(lambda x: len(x) > 10)]
     tqdm.pandas(desc="Detecting language")
     test_data["lang"] = test_data.text.progress_apply(lambda x: detection_lang(x))
-
-    translator = google_translator(
-        proxies={"http": "172.22.112.1:7890", "https": "172.22.112.1:7890"},
-        timeout=5,
-    )
 
     tqdm.pandas(desc="Translating text")
     dev_data["text"] = dev_data.progress_apply(
@@ -231,16 +224,20 @@ if __name__ == "__main__":
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
     dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
-    dev_data_valid["text"] = dev_data_valid.text.apply(lambda x: preprocessor(x))
 
     test_data_valid = test_data[test_data.imgs.apply(len) > 0]
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
     # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
-    test_data_valid["text"] = test_data_valid.text.apply(lambda x: preprocessor(x))
+    if args.use_strict_preprocessor:
+        preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
+        test_data_valid["text"] = test_data_valid.text.apply(lambda x: preprocessor(x))
+        dev_data_valid["text"] = dev_data_valid.text.apply(lambda x: preprocessor(x))
 
     # filter text that is shorter than 10
-    dev_data_valid = dev_data_valid[dev_data_valid.text.apply(lambda x: len(x.split()) > 10)]
-    test_data_valid = test_data_valid[test_data_valid.text.apply(lambda x: len(x.split()) > 10)]
+    if args.min_text_length > 0:
+        min_text_length = args.min_text_length
+        dev_data_valid = dev_data_valid[dev_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)]
+        test_data_valid = test_data_valid[test_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)]
 
     # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
     # all_data["event"] = all_data.imgs.apply(get_event_name)
@@ -267,15 +264,27 @@ if __name__ == "__main__":
         "\n",
     )
 
-    dev_data_valid.to_json(
+    dev_data_valid[["text", "imgs", "event"]].to_json(
         root / "data/image-verification-corpus-master/train_posts.json",
         lines=True,
         orient="records",
         force_ascii=False,
     )
-    test_data_valid.to_json(
+    test_data_valid[["text", "imgs", "event"]].to_json(
         root / "data/image-verification-corpus-master/test_posts.json",
         lines=True,
         orient="records",
         force_ascii=False,
     )
+
+
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument("--use_strict_preprocessor", action="store_true")
+    parser.add_argument("--min_text_length", type=int, default=0)
+
+    args = parser.parse_args()
+
+    main(args)
