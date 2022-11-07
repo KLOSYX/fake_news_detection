@@ -7,3 +7,5 @@ text_encoder: bert-base-uncased
 num_warmup_steps: 200
 fc_hidden_size: 256
 fc_dropout_prob: 0.0
+freeze_vis_encoder: true
+freeze_text_encoder: true

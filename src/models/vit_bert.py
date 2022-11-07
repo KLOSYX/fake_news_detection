@@ -18,6 +18,8 @@ class VitBert(FakeNewsBase):
         num_warmup_steps: int = 400,
         fc_hidden_size: int = 256,
         fc_dropout_prob: float = 0.4,
+        freeze_vis_encoder: bool = True,
+        freeze_text_encoder: bool = True,
     ) -> None:
         super().__init__()
         self.visual_encoder = ViTModel.from_pretrained(
@@ -49,8 +51,14 @@ class VitBert(FakeNewsBase):
         self.weight_decay = weight_decay
         self.num_warmup_steps = num_warmup_steps
 
-        self._freeze(self.visual_encoder)
-        # self._freeze(self.text_decoder)
+        if freeze_vis_encoder:
+            self._freeze(self.visual_encoder)
+        if freeze_text_encoder:
+            self._freeze(self.text_decoder)
+            # do not freeze the cross attention layers, which are newly added
+            for n, p in self.text_decoder.named_parameters():
+                if "crossattention" in n:
+                    p.requires_grad = True
 
     def forward(self, text_encodes, img_encodes):
         # loss for mlm
