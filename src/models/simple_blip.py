@@ -41,13 +41,11 @@ class SimpleBlip(FakeNewsBase):
         if is_freeze_blip:
             self._freeze(self.blip)
             if fine_tune_visual_encoder:
-                for n, p in self.blip.named_parameters():
-                    if "visual_encoder" in n:
-                        p.requires_grad = True
+                for n, p in self.blip.visual_encoder.named_parameters():
+                    p.requires_grad = True
             if fine_tune_text_encoder:
-                for n, p in self.blip.named_parameters():
-                    if "text_encoder" in n:
-                        p.requires_grad = True
+                for n, p in self.blip.text_encoder.named_parameters():
+                    p.requires_grad = True
 
     def forward(self, text_encodeds, img_encodeds):
         mm_features = self.blip(img_encodeds, text_encodeds, mode="multimodal")[
