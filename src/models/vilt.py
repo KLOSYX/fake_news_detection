@@ -121,7 +121,7 @@ if __name__ == "__main__":
         dm_cfg["img_path"] = root / "data" / "MM17-WeiboRumorSet/images_filtered"
         dm_cfg["train_path"] = root / "data" / "MM17-WeiboRumorSet/train_data.json"
         dm_cfg["test_path"] = root / "data" / "MM17-WeiboRumorSet/test_data.json"
-        dm_cfg["vis_model_type"] = "vilt"
+        dm_cfg["vis_model_type"] = "other"
 
     model = hydra.utils.instantiate(model_cfg)
     dm = hydra.utils.instantiate(dm_cfg)

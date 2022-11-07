@@ -1,0 +1,64 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: twitter.yaml
+  - override /model: vit_bert.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: gpu.yaml
+  - override /logger: tensorboard.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+task_name: vit_bert_twitter
+tags: ["fakenews", "multimodal", "classify"]
+monitor: val/accuracy
+
+test: True
+
+seed: 42
+
+trainer:
+  min_epochs: 0
+  max_epochs: 50
+  gradient_clip_val: 1
+  devices: 1
+  precision: 16
+  log_every_n_steps: 10
+
+logger:
+  wandb:
+    project: fakenews_twitter_vit_bert
+    tags: ${tags}
+
+callbacks:
+  model_checkpoint:
+    monitor: ${monitor}
+    mode: max
+  early_stopping:
+    monitor: ${monitor}
+    mode: max
+    patience: 5
+
+model:
+  learning_rate: 0.0001
+  weight_decay: 0.05
+  visual_encoder: google/vit-base-patch16-224-in21k
+  text_encoder: bert-base-uncased
+  num_warmup_steps: 200
+  fc_hidden_size: 256
+  fc_dropout_prob: 0.0
+  freeze_vis_encoder: true
+  freeze_text_encoder: true
+
+datamodule:
+  tokenizer_name: bert-base-uncased
+  processor_name: google/vit-base-patch16-224-in21k
+  max_length: 32
+  vis_model_type: other
+  num_workers: 2
+  batch_size: 32
+  val_set_ratio: 0.15
