@@ -12,3 +12,4 @@ batch_size: 8
 num_workers: 0
 use_test_as_val: true
 simclr_trans: false
+use_blip: false
