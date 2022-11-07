@@ -1,0 +1,9 @@
+_target_: src.models.vit_bert.VitBert
+
+learning_rate: 0.0001
+weight_decay: 0.05
+visual_encoder: google/vit-base-patch16-224-in21k
+text_encoder: bert-base-uncased
+num_warmup_steps: 200
+fc_hidden_size: 256
+fc_dropout_prob: 0.0

@@ -25,7 +25,7 @@ DATASETS = [
     "weibo_with_event",
 ]
 
-VISUAL_MODEL_TYPES = ["vgg", "blip"]
+VISUAL_MODEL_TYPES = ["vgg", "blip", "other"]
 
 
 class GaussianBlur:
@@ -272,6 +272,7 @@ class MultiModalData(DatamoduleBase):
 
     @staticmethod
     def _get_transforms(vis_model_type: str = "vgg", image_size: int = 224) -> transforms.Compose:
+        trans = None
         if vis_model_type == "vgg":
             log.debug("Using vgg transform")
             trans = transforms.Compose(
@@ -295,9 +296,8 @@ class MultiModalData(DatamoduleBase):
                     ),
                 ]
             )
-        else:
+        elif vis_model_type == "other":
             log.debug("Using default transform")
-            trans = None
         return trans
 
     @staticmethod
