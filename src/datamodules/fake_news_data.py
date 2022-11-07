@@ -8,12 +8,24 @@ from PIL import Image
 from torch import nn
 from torch.utils.data import Dataset, random_split
 from torchvision import transforms
+from torchvision.transforms import InterpolationMode
 from transformers import AutoFeatureExtractor, AutoTokenizer
 
 from src.datamodules.components.dm_base import DatamoduleBase
+from src.models.components.blip_base import init_tokenizer
 from src.utils.pylogger import get_pylogger
 
 log = get_pylogger(__name__)
+
+
+DATASETS = [
+    "weibo",
+    "twitter",
+    "twitter_with_event",
+    "weibo_with_event",
+]
+
+VISUAL_MODEL_TYPES = ["vgg", "blip"]
 
 
 class GaussianBlur:
@@ -182,19 +194,18 @@ class MultiModalData(DatamoduleBase):
         simclr_trans: bool = False,
         vis_model_type: str = "vgg",
     ):
-        assert dataset_name in [
-            "weibo",
-            "twitter",
-            "twitter_with_event",
-            "weibo_with_event",
-        ], "Dataset name must be in [weibo, twitter, twitter_with_event, weibo_with_event]"
+        assert dataset_name in DATASETS
+        assert vis_model_type in VISUAL_MODEL_TYPES
         super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
         self.train_path = train_path
         self.test_path = test_path
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_name, cache_dir=Path.home() / ".cache"
-        )
+        if vis_model_type == "blip":
+            self.tokenizer = init_tokenizer()
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                tokenizer_name, cache_dir=Path.home() / ".cache"
+            )
         self.processor = (
             AutoFeatureExtractor.from_pretrained(processor_name, cache_dir=Path.home() / ".cache")
             if processor_name
@@ -260,8 +271,9 @@ class MultiModalData(DatamoduleBase):
         return self.dataset_cls(**params)
 
     @staticmethod
-    def _get_transforms(vis_model_type: str = "vgg") -> transforms.Compose:
+    def _get_transforms(vis_model_type: str = "vgg", image_size: int = 224) -> transforms.Compose:
         if vis_model_type == "vgg":
+            log.debug("Using vgg transform")
             trans = transforms.Compose(
                 [
                     transforms.Resize(256, interpolation=transforms.InterpolationMode.BILINEAR),
@@ -270,7 +282,21 @@ class MultiModalData(DatamoduleBase):
                     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                 ]
             )
+        elif vis_model_type == "blip":
+            log.debug("Using blip transform")
+            trans = transforms.Compose(
+                [
+                    transforms.Resize(
+                        (image_size, image_size), interpolation=InterpolationMode.BICUBIC
+                    ),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        (0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)
+                    ),
+                ]
+            )
         else:
+            log.debug("Using default transform")
             trans = None
         return trans
 

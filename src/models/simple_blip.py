@@ -30,14 +30,9 @@ class SimpleBlip(FakeNewsBase):
         )
         self.classifier = nn.Sequential(
             nn.Linear(768, fc_hidden_size),
-            # nn.BatchNorm1d(fc_hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout_prob),
-            nn.Linear(fc_hidden_size, 768),
-            # nn.BatchNorm1d(768),
-            nn.ReLU(),
-            nn.Dropout(dropout_prob),
-            nn.Linear(768, 2),
+            nn.Linear(fc_hidden_size, 2),
         )
         self.criterion = nn.CrossEntropyLoss()
 

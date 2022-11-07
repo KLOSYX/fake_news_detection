@@ -56,4 +56,4 @@ datamodule:
   num_workers: 1
   batch_size: 8
   val_set_ratio: 0.1
-  use_blip: true
+  vis_model_type: blip
