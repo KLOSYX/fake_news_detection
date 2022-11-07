@@ -50,7 +50,7 @@ class VitBert(FakeNewsBase):
         self.num_warmup_steps = num_warmup_steps
 
         self._freeze(self.visual_encoder)
-        self._freeze(self.text_decoder)
+        # self._freeze(self.text_decoder)
 
     def forward(self, text_encodes, img_encodes):
         # loss for mlm
