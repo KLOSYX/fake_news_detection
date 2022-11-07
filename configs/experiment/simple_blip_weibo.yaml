@@ -49,7 +49,9 @@ model:
   num_warmup_steps: 700
   dropout_prob: 0.0
   fc_hidden_size: 256
-  is_freeze_blip: false
+  is_freeze_blip: true
+  fine_tune_visual_encoder: false
+  fine_tune_text_encoder: true
 
 datamodule:
   tokenizer_name: None
