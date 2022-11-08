@@ -165,7 +165,7 @@ def main(args: Namespace):
 
     test_data_with_img = test_data[test_data.imgs.apply(len) > 0]
     test_data_with_img["imgs"] = test_data_with_img.imgs.apply(lambda x: x[0])
-    # test_data_with_img = test_data_with_img.drop_duplicates(subset=["text", "imgs"])
+    test_data_with_img = test_data_with_img.drop_duplicates(subset=["text", "imgs"])
 
     print(
         "train length with image:",

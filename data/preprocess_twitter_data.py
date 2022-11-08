@@ -2,7 +2,7 @@ import pickle
 import re
 import time
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,6 @@ root = pyrootutils.setup_root(".", pythonpath=True)
 
 from src.utils.data_util import clean_text
 from src.utils.data_util.english_preprocessor import EnglishProcessor
-from src.utils.google_trans_new.google_trans_new import google_translator
 
 DetectorFactory.seed = 0
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -188,38 +187,47 @@ def main(args):
     print(f"===== Invalid images: {len(invalid_img_set)} in total ======")
     print(invalid_img_set)
 
-    translated_train_data = pickle.load(
-        open(root / "data/image-verification-corpus-master/cleaned_train_text.pkl", "rb")
+    translated_train_data = pd.read_json(
+        root / "data" / "train_data_tencent_translated.json",
+        lines=True,
     )
-    translated_test_data = pickle.load(
-        open(root / "data/image-verification-corpus-master/cleaned_test_text.pkl", "rb")
-    )
-
-    dev_data["text"] = dev_data.post_text.apply(clean_text)
-    dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 10)]
-    tqdm.pandas(desc="Detecting language")
-    dev_data["lang"] = dev_data.text.progress_apply(lambda x: detection_lang(x))
-
-    test_data["text"] = test_data.post_text.apply(clean_text)
-    test_data = test_data[test_data.text.apply(lambda x: len(x) > 10)]
-    tqdm.pandas(desc="Detecting language")
-    test_data["lang"] = test_data.text.progress_apply(lambda x: detection_lang(x))
-
-    tqdm.pandas(desc="Translating text")
-    dev_data["text"] = dev_data.progress_apply(
-        lambda x: get_translated_text(translated_train_data, str(x["post_id"]), x["text"])
-        if x["lang"] != "en"
-        else x["text"],
-        axis=1,
+    translated_test_data = pd.read_json(
+        root / "data" / "test_data_tencent_translated.json",
+        lines=True,
     )
 
-    tqdm.pandas(desc="Translating text")
-    test_data["text"] = test_data.progress_apply(
-        lambda x: get_translated_text(translated_test_data, str(x["post_id"]), x["text"])
-        if x["lang"] != "en"
-        else x["text"],
-        axis=1,
-    )
+    # dev_data["text"] = dev_data.post_text.apply(clean_text)
+    # dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 10)]
+    # tqdm.pandas(desc="Detecting language")
+    # dev_data["lang"] = dev_data.text.progress_apply(lambda x: detection_lang(x))
+    #
+    # test_data["text"] = test_data.post_text.apply(clean_text)
+    # test_data = test_data[test_data.text.apply(lambda x: len(x) > 10)]
+    # tqdm.pandas(desc="Detecting language")
+    # test_data["lang"] = test_data.text.progress_apply(lambda x: detection_lang(x))
+    #
+    # tqdm.pandas(desc="Translating text")
+    # dev_data["text"] = dev_data.progress_apply(
+    #     lambda x: get_translated_text(translated_train_data, str(x["post_id"]), x["text"])
+    #     # if x["lang"] != "en",
+    #     if x["post_id"] in translated_train_data
+    #     else x["text"],
+    #     axis=1,
+    # )
+
+    # tqdm.pandas(desc="Translating text")
+    # test_data["text"] = test_data.progress_apply(
+    #     lambda x: get_translated_text(translated_test_data, str(x["post_id"]), x["text"])
+    #     # if x["lang"] != "en"
+    #     if x["post_id"] in translated_test_data
+    #     else x["text"],
+    #     axis=1,
+    # )
+
+    dev_data = dev_data.merge(translated_train_data[["post_id", "translated_text"]], on="post_id", how="left")
+    test_data = test_data.merge(translated_test_data[["post_id", "translated_text"]], on="post_id", how="left")
+    dev_data["text"] = dev_data.translated_text.astype(str).apply(clean_text)
+    test_data["text"] = test_data.translated_text.astype(str).apply(clean_text)
 
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
@@ -227,7 +235,8 @@ def main(args):
 
     test_data_valid = test_data[test_data.imgs.apply(len) > 0]
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
-    # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
+    test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
+
     if args.use_strict_preprocessor:
         preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
         test_data_valid["text"] = test_data_valid.text.apply(lambda x: preprocessor(x))
@@ -255,7 +264,7 @@ def main(args):
     test_data_valid["event"] = -1
     # ===== end =====
 
-    print(f"===== Training event number: {len(set(dev_data_valid.event))} ======")
+    # print(f"===== Training event number: {len(set(dev_data_valid.event))} ======")
     # print(f"===== Testing event number: {len(set(test_data_valid.event))} ======")
 
     print(
@@ -268,13 +277,13 @@ def main(args):
         "\n",
     )
 
-    dev_data_valid[["text", "imgs", "event", "label"]].to_json(
+    dev_data_valid[["post_id", "text", "imgs", "label"]].to_json(
         root / "data/image-verification-corpus-master/train_posts.json",
         lines=True,
         orient="records",
         force_ascii=False,
     )
-    test_data_valid[["text", "imgs", "event", "label"]].to_json(
+    test_data_valid[["post_id", "text", "imgs", "label"]].to_json(
         root / "data/image-verification-corpus-master/test_posts.json",
         lines=True,
         orient="records",
