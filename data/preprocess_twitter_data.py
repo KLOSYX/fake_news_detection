@@ -224,8 +224,12 @@ def main(args):
     #     axis=1,
     # )
 
-    dev_data = dev_data.merge(translated_train_data[["post_id", "translated_text"]], on="post_id", how="left")
-    test_data = test_data.merge(translated_test_data[["post_id", "translated_text"]], on="post_id", how="left")
+    dev_data = dev_data.merge(
+        translated_train_data[["post_id", "translated_text"]], on="post_id", how="left"
+    )
+    test_data = test_data.merge(
+        translated_test_data[["post_id", "translated_text"]], on="post_id", how="left"
+    )
     dev_data["text"] = dev_data.translated_text.astype(str).apply(clean_text)
     test_data["text"] = test_data.translated_text.astype(str).apply(clean_text)
 
