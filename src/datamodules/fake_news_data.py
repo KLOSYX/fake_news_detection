@@ -183,6 +183,7 @@ class MultiModalData(DatamoduleBase):
         img_path: str,
         train_path: Optional[str] = None,
         test_path: Optional[str] = None,
+        val_path: Optional[str] = None,
         val_set_ratio: float = 0.2,
         batch_size: int = 8,
         num_workers: int = 0,
@@ -199,6 +200,7 @@ class MultiModalData(DatamoduleBase):
         super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
         self.train_path = train_path
+        self.val_path = val_path
         self.test_path = test_path
         if vis_model_type == "blip":
             self.tokenizer = init_tokenizer()
@@ -226,22 +228,27 @@ class MultiModalData(DatamoduleBase):
     def setup(self, stage: Optional[str] = None) -> None:
         self.collector = self._get_collector()
         if stage == "fit" or stage is None:
-            dataset = self._get_dataset(stage)
-            if not self.use_test_as_val:
+            dataset = self._get_dataset("fit")
+            if self.val_path is not None:
+                self.train_data = dataset
+                self.val_data = self._get_dataset("fit", self.val_path)
+
+            elif self.use_test_as_val:
+                self.train_data = dataset
+                self.val_data = self._get_dataset("test")
+
+            else:
                 val_size = max(int(len(dataset) * self.val_ratio), 1)
                 train_size = len(dataset) - val_size
                 assert (
                     train_size >= 1 and val_size >= 1
                 ), "Train size or val size is smaller than 1!"
-                print("Train size", train_size, "Val size", val_size)
                 self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
-            else:
-                self.train_data = dataset
-                self.val_data = self._get_dataset("test")
-                print("Train size", len(self.train_data), "Val size", len(self.val_data))
+
+            print("Train size", len(self.train_data), "Val size", len(self.val_data))
 
         if stage == "test" or stage is None:
-            self.test_data = self._get_dataset(stage)
+            self.test_data = self._get_dataset("test")
             print("Test size", len(self.test_data))
 
     def _get_collector(self) -> Any:
@@ -257,10 +264,16 @@ class MultiModalData(DatamoduleBase):
             log.debug(f"Using CollectorWithEvent for {self.dataset_name}")
             return CollectorWithEvent(**params)
 
-    def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
+    def _get_dataset(
+        self, stage: Optional[str] = "fit", override_path: Optional[str] = None
+    ) -> Dataset:
+        if override_path is None:
+            data_path = self.train_path if stage == "fit" or stage is None else self.test_path
+        else:
+            data_path = override_path
         params = dict(
             img_path=self.img_path,
-            data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
+            data_path=data_path,
             transforms=self._get_transforms(self.vis_model_type),
         )
         if self.simclr_trans:
