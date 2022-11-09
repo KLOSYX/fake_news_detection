@@ -45,23 +45,46 @@ class TextCNN(nn.Module):
         return x
 
 
+class LstmEncoder(nn.Module):
+    def __init__(
+        self,
+        input_size: int = 300,
+        hidden_size: int = 128,
+        num_layers: int = 1,
+        bidirectional: bool = True,
+        dropout_prob: float = 0.4,
+        out_size: int = 768,
+    ):
+        super().__init__()
+        self.lstm = nn.LSTM(
+            input_size,
+            hidden_size,
+            num_layers=num_layers,
+            bidirectional=bidirectional,
+            dropout=dropout_prob,
+            batch_first=True,
+        )
+        self.proj = nn.Linear(hidden_size * 2, out_size)
+
+    def forward(self, x):
+        # x: (N, L, E)
+        x, (h, c) = self.lstm(x)
+        out = self.proj(torch.cat([h[-2], h[-1]], dim=1))
+        return out
+
+
 class BlipKb(FakeNewsBase):
     def __init__(
         self,
         model_path: str,
         med_config: str,
+        kb_encoder: nn.Module,
         fc_hidden_size: int = 256,
         dropout_prob: float = 0.2,
         lr: float = 0.001,
         weight_decay: float = 0.05,
         num_warmup_steps: int = 400,
         label_smoothing: float = 0.1,
-        cnn_embedding_dim: int = 300,
-        cnn_conv_out_channels: int = 128,
-        cnn_kernel_sizes: Tuple[int] = (3, 4, 5),
-        cnn_dropout_prob: float = 0.0,
-        cnn_hidden_size: int = 64,
-        cnn_output_size: int = 768,
         is_freeze_blip: bool = True,
         fine_tune_visual_encoder: bool = False,
         fine_tune_text_encoder: bool = False,
@@ -76,14 +99,7 @@ class BlipKb(FakeNewsBase):
         self.blip = blip_feature_extractor(
             pretrained=model_path, med_config=med_config, image_size=224, vit="base"
         )
-        self.text_cnn = TextCNN(
-            embedding_dim=cnn_embedding_dim,
-            conv_out_channels=cnn_conv_out_channels,
-            kernel_sizes=cnn_kernel_sizes,
-            dropout_prob=cnn_dropout_prob,
-            hidden_size=cnn_hidden_size,
-            output_size=cnn_output_size,
-        )
+        self.kb_encoder = kb_encoder
         self.classifier = nn.Sequential(
             nn.Linear(768, fc_hidden_size),
             nn.ReLU(),
@@ -105,13 +121,13 @@ class BlipKb(FakeNewsBase):
     def forward(self, text_encodeds, img_encodeds):
         # encode images
         image_embeds = self.blip.visual_encoder(img_encodeds)
-        b, l = image_embeds.shape[:2]
+        b, k = image_embeds.shape[:2]
         s = text_encodeds.input_ids.shape[1]
-        image_atts = torch.ones((b, s, l), dtype=torch.long).to(img_encodeds.device)
+        image_atts = torch.ones((b, s, k), dtype=torch.long).to(img_encodeds.device)
 
         # encode knowledge
         kb_embeds = text_encodeds["kb_embeddings"].to(img_encodeds.device).to(torch.float32)
-        cnn_out = self.text_cnn(kb_embeds)  # (total_kb, 768)
+        cnn_out = self.kb_encoder(kb_embeds)  # (total_kb, 768)
         kb_true_annotation_nums = text_encodeds["kb_true_annotation_nums"]
         kb_embeds = []
         # max num of kb entities in each sample is 32
