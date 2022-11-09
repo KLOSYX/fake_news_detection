@@ -76,7 +76,7 @@ class BlipKb(FakeNewsBase):
             nn.Dropout(dropout_prob),
             nn.Linear(fc_hidden_size, 2),
         )
-        self.null_entities = nn.Parameter(torch.zeros(1, 768))
+        self.register_buffer("null_entities", torch.zeros(1, 768))
         self.criterion = nn.CrossEntropyLoss()
 
         if is_freeze_blip:
@@ -104,7 +104,7 @@ class BlipKb(FakeNewsBase):
                 kb_embeds.append(self.null_entities)
             else:
                 kb_embeds.append(cnn_out[start:end])
-            kb_atts[i, : end - start] = 1
+                kb_atts[i, : end - start] = 1
         kb_embeds = pad_sequence(kb_embeds, batch_first=True, padding_value=0)
 
         image_kb_embeds = torch.cat([image_embeds, kb_embeds], dim=1)
