@@ -1,3 +1,4 @@
+from collections import defaultdict
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -221,10 +222,13 @@ class CollectorKB(Collector):
         embeddings = embeddings[:, :128, :]
         assert embeddings.shape[0] == true_annotation_nums[-1]
 
+        cross_atts = self._get_cross_attention_mask(text_encodeds, annotations)
+
         text_encodeds.update(
             {
                 "kb_embeddings": embeddings,
                 "kb_true_annotation_nums": torch.Tensor(true_annotation_nums).to(torch.long),
+                "kb_cross_atts": torch.Tensor(cross_atts).to(torch.long),
             }
         )
 
@@ -237,7 +241,22 @@ class CollectorKB(Collector):
         #  5. be caution, might be empty
 
     def _get_cross_attention_mask(self, text_encodeds, annotations):
-        pass
+        atts = torch.zeros(text_encodeds.input_ids.size(0), text_encodeds.input_ids.size(1), 32)
+        entity_map_list: List[Dict[int, int]] = []
+        for ann in annotations:
+            entity_map = {}
+            for i, a in enumerate(ann):
+                for n in range(a["start"], a["end"]):
+                    entity_map[n] = i
+            entity_map_list.append(entity_map)
+        for b, m in enumerate(text_encodeds.offset_mapping.tolist()):
+            for t, n in enumerate(m):
+                if n[0] == 0 and n[1] == 0:
+                    continue
+                entity_id = entity_map_list[b].get(n[0], -1)
+                if entity_id != -1:
+                    atts[b, t, entity_id] = 1
+        return atts
 
 
 class CollectorWithEvent(Collector):
