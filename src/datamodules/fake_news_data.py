@@ -1,11 +1,13 @@
+from itertools import chain
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import torch
 from PIL import Image
 from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, random_split
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
@@ -17,12 +19,13 @@ from src.utils.pylogger import get_pylogger
 
 log = get_pylogger(__name__)
 
-
 DATASETS = [
     "weibo",
     "twitter",
     "twitter_with_event",
     "weibo_with_event",
+    "weibo_kb",
+    "twitter_kb",
 ]
 
 VISUAL_MODEL_TYPES = ["vgg", "blip", "other"]
@@ -131,6 +134,36 @@ class TwitterDatasetWithEvent(TwitterDataset):
         )
 
 
+class WeiboDatasetKB(WeiboDataset):
+    def __init__(
+        self,
+        img_path: Union[str, Path],
+        data_path: Union[str, Path],
+        w2v_path: Union[str, Path],
+        transforms: Optional[transforms.Compose],
+    ) -> None:
+        super().__init__(img_path, data_path, transforms)
+        self.w2v = np.load(w2v_path)
+        # self.w2v = torch.from_numpy(self.w2v).float()
+
+    def __getitem__(self, idx):
+        text = self.data.iloc[idx]["text"]
+        img_name = self.data.iloc[idx]["imgs"]
+        img_path = self.img_path / img_name
+        img = Image.open(img_path).convert("RGB")
+        label = self.data.iloc[idx]["label"]
+        annotations: List[Dict] = self.data.iloc[idx]["wiki_annotations"]
+        for a in annotations:
+            a["vecs"] = torch.from_numpy(self.w2v[a["ids"]])
+            a.pop("ids")
+        return (
+            text,
+            self.transforms(img).unsqueeze(0) if self.transforms else img,
+            torch.tensor([label], dtype=torch.long),
+            annotations,
+        )
+
+
 class Collector:
     def __init__(self, tokenizer: Any, processor: Optional[Any], max_length: int = 200) -> None:
         self.tokenizer = tokenizer
@@ -154,6 +187,53 @@ class Collector:
         # image agumentation here, todo...
         labels = torch.cat(labels)
         return text_encodeds, img_encodeds, labels
+
+
+class CollectorKB(Collector):
+    def __call__(self, data: List) -> Tuple:
+        texts, imgs, labels, annotations = zip(*data)
+        text_encodeds = self.tokenizer(
+            list(texts),
+            padding=True,
+            truncation=True,
+            max_length=self.max_length,
+            return_tensors="pt",
+            return_offsets_mapping=True,
+        )
+        img_encodeds = (
+            self.processor(imgs, return_tensors="pt")
+            if self.processor is not None
+            else torch.cat(imgs, dim=0)
+        )
+        labels = torch.cat(labels)
+        true_annotation_nums = [
+            0,
+        ]
+        cnt = 0
+        for a in annotations:
+            cnt += len(a)
+            true_annotation_nums.append(cnt)
+        embeddings = [x["vecs"] for x in chain.from_iterable(annotations) if x]
+        embeddings = pad_sequence(embeddings, batch_first=True, padding_value=0)
+        assert embeddings.shape[0] == true_annotation_nums[-1]
+
+        text_encodeds.update(
+            {
+                "kb_embeddings": embeddings,
+                "kb_true_annotation_nums": torch.Tensor(true_annotation_nums).to(torch.long),
+            }
+        )
+
+        return text_encodeds, img_encodeds, labels
+
+        pass
+        # TODO:
+        #  3. return cross attention mask
+        #  4. padding kb embedding to same length
+        #  5. be caution, might be empty
+
+    def _get_cross_attention_mask(self, text_encodeds, annotations):
+        pass
 
 
 class CollectorWithEvent(Collector):
@@ -183,6 +263,7 @@ class MultiModalData(DatamoduleBase):
         img_path: str,
         train_path: Optional[str] = None,
         test_path: Optional[str] = None,
+        w2v_path: Optional[str] = None,
         val_set_ratio: float = 0.2,
         batch_size: int = 8,
         num_workers: int = 0,
@@ -200,6 +281,7 @@ class MultiModalData(DatamoduleBase):
         self.img_path = img_path
         self.train_path = train_path
         self.test_path = test_path
+        self.w2v_path = w2v_path
         if vis_model_type == "blip":
             self.tokenizer = init_tokenizer()
         else:
@@ -222,6 +304,8 @@ class MultiModalData(DatamoduleBase):
             self.dataset_cls = TwitterDataset
         elif dataset_name == "twitter_with_event":
             self.dataset_cls = TwitterDatasetWithEvent
+        elif dataset_name == "weibo_kb":
+            self.dataset_cls = WeiboDatasetKB
 
     def setup(self, stage: Optional[str] = None) -> None:
         self.collector = self._get_collector()
@@ -250,12 +334,15 @@ class MultiModalData(DatamoduleBase):
             processor=self.processor,
             max_length=self.max_length,
         )
-        if "event" not in self.dataset_name:
-            log.debug(f"Using Collector for {self.dataset_name}")
-            return Collector(**params)
-        else:
+        if "event" in self.dataset_name:
             log.debug(f"Using CollectorWithEvent for {self.dataset_name}")
             return CollectorWithEvent(**params)
+        elif "kb" in self.dataset_name:
+            log.debug(f"Using CollectorKB for {self.dataset_name}")
+            return CollectorKB(**params)
+        else:
+            log.debug(f"Using Collector for {self.dataset_name}")
+            return Collector(**params)
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         params = dict(
@@ -268,6 +355,8 @@ class MultiModalData(DatamoduleBase):
             params["transforms"] = self._get_simclr_pipeline_transform(224)
         else:
             log.debug(f"Not using simclr transform in {self.dataset_name}")
+        if "kb" in self.dataset_name:
+            params["w2v_path"] = self.w2v_path
         return self.dataset_cls(**params)
 
     @staticmethod
@@ -320,12 +409,26 @@ class MultiModalData(DatamoduleBase):
 
 # debug
 if __name__ == "__main__":
-    data = MultiModalData(
-        img_path="/data/fake_news/datasets/MM17-WeiboRumorSet/images",
-        train_path="/data/fake_news/datasets/MM17-WeiboRumorSet/train_data.json",
-        test_path="/data/fake_news/datasets/MM17-WeiboRumorSet/test_data.json",
-    )
-    data.setup("fit")
-    it = iter(data.train_dataloader())
-    while True:
-        item = next(it)
+    import hydra
+    import omegaconf
+    import pyrootutils
+
+    root = pyrootutils.setup_root(__file__, pythonpath=True)
+    cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "weibo.yaml")
+    with omegaconf.open_dict(cfg):
+        cfg[
+            "train_path"
+        ] = "/home/anbinx/develop/notebooks/wiki_entity_link/weibo_train_data_wiki.json"
+        cfg["w2v_path"] = "/home/anbinx/develop/notebooks/wiki_entity_link/wiki_desc_vec.npy"
+        cfg["img_path"] = root / "data" / "MM17-WeiboRumorSet" / "images_filtered"
+        cfg[
+            "test_path"
+        ] = "/home/anbinx/develop/notebooks/wiki_entity_link/weibo_test_data_wiki.json"
+        cfg["dataset_name"] = "weibo_kb"
+    # cfg.data_dir = str(root / "data")
+    dm = hydra.utils.instantiate(cfg)
+    dm.setup("fit")
+    dataloader = dm.train_dataloader()
+    item = next(iter(dataloader))
+
+    pass

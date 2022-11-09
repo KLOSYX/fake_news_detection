@@ -17,7 +17,7 @@ import torch
 import torch.nn.functional as F
 from timm.models.hub import download_cached_file
 from torch import nn
-from transformers import BertTokenizer
+from transformers import BertTokenizer, BertTokenizerFast
 
 from src.models.components.med import BertConfig, BertLMHeadModel, BertModel
 from src.models.components.vit import VisionTransformer, interpolate_pos_embed
@@ -222,7 +222,8 @@ def blip_feature_extractor(pretrained="", **kwargs):
 
 
 def init_tokenizer():
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    # tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+    tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
     tokenizer.add_special_tokens({"bos_token": "[DEC]"})
     tokenizer.add_special_tokens({"additional_special_tokens": ["[ENC]"]})
     tokenizer.enc_token_id = tokenizer.additional_special_tokens_ids[0]

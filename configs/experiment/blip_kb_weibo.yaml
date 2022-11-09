@@ -1,0 +1,65 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: weibo.yaml
+  - override /model: blip_kb.yaml
+  - override /callbacks: default.yaml
+  - override /trainer: gpu.yaml
+  - override /logger: tensorboard.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+task_name: blip_kb_weibo
+tags: ["fakenews", "multimodal", "classify", "blip"]
+monitor: val/accuracy
+
+test: True
+
+seed: 42
+
+trainer:
+  min_epochs: 0
+  max_epochs: 10
+  gradient_clip_val: 0
+  devices: 1
+  precision: 16
+  log_every_n_steps: 10
+
+logger:
+  wandb:
+    project: fakenews_weibo_blip_kb
+    tags: ${tags}
+
+callbacks:
+  model_checkpoint:
+    monitor: ${monitor}
+    mode: max
+  early_stopping:
+    monitor: ${monitor}
+    mode: max
+    patience: 3
+
+model:
+  lr: 0.001
+  weight_decay: 0.05
+  num_warmup_steps: 700
+  dropout_prob: 0.0
+  fc_hidden_size: 256
+  is_freeze_blip: true
+  fine_tune_visual_encoder: false
+  fine_tune_text_encoder: false
+
+datamodule:
+  train_path: /home/anbinx/develop/notebooks/wiki_entity_link/weibo_train_data_wiki.json
+  test_path: /home/anbinx/develop/notebooks/wiki_entity_link/weibo_test_data_wiki.json
+  w2v_path: /home/anbinx/develop/notebooks/wiki_entity_link/wiki_desc_vec.npy
+  dataset_name: weibo_kb
+  tokenizer_name: None
+  num_workers: 1
+  batch_size: 2
+  val_set_ratio: 0.15
+  vis_model_type: blip
