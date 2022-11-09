@@ -55,6 +55,7 @@ class BlipKb(FakeNewsBase):
         lr: float = 0.001,
         weight_decay: float = 0.05,
         num_warmup_steps: int = 400,
+        label_smoothing: float = 0.1,
         cnn_embedding_dim: int = 300,
         cnn_conv_out_channels: int = 128,
         cnn_kernel_sizes: Tuple[int] = (3, 4, 5),
@@ -90,7 +91,7 @@ class BlipKb(FakeNewsBase):
             nn.Linear(fc_hidden_size, 2),
         )
         self.register_buffer("null_entities", torch.zeros(1, 768))
-        self.criterion = nn.CrossEntropyLoss()
+        self.criterion = nn.CrossEntropyLoss(label_smoothing=label_smoothing)
 
         if is_freeze_blip:
             self._freeze(self.blip)
@@ -102,9 +103,11 @@ class BlipKb(FakeNewsBase):
                     p.requires_grad = True
 
     def forward(self, text_encodeds, img_encodeds):
+        # encode images
         image_embeds = self.blip.visual_encoder(img_encodeds)
         image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(img_encodeds.device)
 
+        # encode knowledge
         kb_embeds = text_encodeds["kb_embeddings"].to(img_encodeds.device).to(torch.float32)
         cnn_out = self.text_cnn(kb_embeds)  # (total_kb, 768)
         kb_true_annotation_nums = text_encodeds["kb_true_annotation_nums"]
@@ -118,19 +121,30 @@ class BlipKb(FakeNewsBase):
             else:
                 kb_embeds.append(cnn_out[start:end])
                 kb_atts[i, : end - start] = 1
-        kb_embeds = pad_sequence(kb_embeds, batch_first=True, padding_value=0)
+        kb_embeds = pad_sequence(
+            kb_embeds, batch_first=True, padding_value=0
+        )  # (N, max_length, 768)
+        kb_atts = kb_atts[:, : kb_embeds.size(1)]  # (N, max_length)
 
-        image_kb_embeds = torch.cat([image_embeds, kb_embeds], dim=1)
-        image_kb_atts = torch.cat([image_atts, kb_atts], dim=1)
-        # pad size might be smaller than max length
-        image_kb_atts = image_kb_atts[:, : image_kb_embeds.size(1)]
+        # image_kb_embeds = torch.cat([image_embeds, kb_embeds], dim=1)
+        # image_kb_atts = torch.cat([image_atts, kb_atts], dim=1)
 
         text_encodeds.input_ids[:, 0] = self.blip.tokenizer.enc_token_id
+
+        # text embeddings
+        text_embeds = self.blip.text_encoder.embeddings(
+            text_encodeds["input_ids"].to(img_encodeds.device),
+        )
+
+        # concat text embeddings and knowledge embeddings
+        text_kb_embeds = torch.cat([text_embeds, kb_embeds], dim=1)
+        text_kb_atts = torch.cat([text_encodeds["attention_mask"], kb_atts], dim=1)
+
         output = self.blip.text_encoder(
-            text_encodeds.input_ids,
-            attention_mask=text_encodeds.attention_mask,
-            encoder_hidden_states=image_kb_embeds,
-            encoder_attention_mask=image_kb_atts,
+            encoder_embeds=text_kb_embeds,
+            attention_mask=text_kb_atts,
+            encoder_hidden_states=image_embeds,
+            encoder_attention_mask=image_atts,
             return_dict=True,
         )
 
