@@ -214,7 +214,11 @@ class CollectorKB(Collector):
             cnt += len(a)
             true_annotation_nums.append(cnt)
         embeddings = [x["vecs"] for x in chain.from_iterable(annotations) if x]
-        embeddings = pad_sequence(embeddings, batch_first=True, padding_value=0)
+        embeddings = pad_sequence(
+            embeddings, batch_first=True, padding_value=0
+        )  # (total_entities, max_desc_length, 300)
+        # manually set max description length
+        embeddings = embeddings[:, :128, :]
         assert embeddings.shape[0] == true_annotation_nums[-1]
 
         text_encodeds.update(

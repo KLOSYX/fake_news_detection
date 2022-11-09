@@ -30,7 +30,7 @@ class TextCNN(nn.Module):
         self.act = nn.ReLU()
         self.proj = nn.Sequential(
             nn.Linear(len(kernel_sizes) * conv_out_channels, hidden_size),
-            nn.ReLU(),
+            self.act,
             nn.Dropout(dropout_prob),
             nn.Linear(hidden_size, output_size),
         )
@@ -76,6 +76,7 @@ class BlipKb(FakeNewsBase):
             nn.Dropout(dropout_prob),
             nn.Linear(fc_hidden_size, 2),
         )
+        self.null_entities = nn.Parameter(torch.zeros(1, 768))
         self.criterion = nn.CrossEntropyLoss()
 
         if is_freeze_blip:
@@ -99,7 +100,10 @@ class BlipKb(FakeNewsBase):
         kb_atts = torch.zeros(image_atts.size(0), 32, dtype=torch.long).to(img_encodeds.device)
         for i in range(len(kb_true_annotation_nums) - 1):
             start, end = kb_true_annotation_nums[i], kb_true_annotation_nums[i + 1]
-            kb_embeds.append(cnn_out[start:end])
+            if start == end:
+                kb_embeds.append(self.null_entities)
+            else:
+                kb_embeds.append(cnn_out[start:end])
             kb_atts[i, : end - start] = 1
         kb_embeds = pad_sequence(kb_embeds, batch_first=True, padding_value=0)
 
