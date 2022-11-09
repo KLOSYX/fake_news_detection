@@ -55,6 +55,12 @@ class BlipKb(FakeNewsBase):
         lr: float = 0.001,
         weight_decay: float = 0.05,
         num_warmup_steps: int = 400,
+        cnn_embedding_dim: int = 300,
+        cnn_conv_out_channels: int = 128,
+        cnn_kernel_sizes: Tuple[int] = (3, 4, 5),
+        cnn_dropout_prob: float = 0.0,
+        cnn_hidden_size: int = 64,
+        cnn_output_size: int = 768,
         is_freeze_blip: bool = True,
         fine_tune_visual_encoder: bool = False,
         fine_tune_text_encoder: bool = False,
@@ -69,7 +75,14 @@ class BlipKb(FakeNewsBase):
         self.blip = blip_feature_extractor(
             pretrained=model_path, med_config=med_config, image_size=224, vit="base"
         )
-        self.text_cnn = TextCNN()
+        self.text_cnn = TextCNN(
+            embedding_dim=cnn_embedding_dim,
+            conv_out_channels=cnn_conv_out_channels,
+            kernel_sizes=cnn_kernel_sizes,
+            dropout_prob=cnn_dropout_prob,
+            hidden_size=cnn_hidden_size,
+            output_size=cnn_output_size,
+        )
         self.classifier = nn.Sequential(
             nn.Linear(768, fc_hidden_size),
             nn.ReLU(),
