@@ -1,9 +1,8 @@
-from itertools import zip_longest
 from typing import Tuple
 
 import torch
 from torch import nn
-from torch.nn.utils.rnn import pad_sequence
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence, pad_sequence
 from transformers import get_constant_schedule_with_warmup
 
 from src.models.components.blip_base import blip_feature_extractor
@@ -64,12 +63,21 @@ class LstmEncoder(nn.Module):
             dropout=dropout_prob,
             batch_first=True,
         )
-        self.proj = nn.Linear(hidden_size * 2, out_size)
+        self.proj = (
+            nn.Linear(hidden_size * 2, out_size)
+            if bidirectional
+            else nn.Linear(hidden_size, out_size)
+        )
+        self.bidirectional = bidirectional
 
-    def forward(self, x):
+    def forward(self, x, lengths):
         # x: (N, L, E)
-        x, (h, c) = self.lstm(x)
-        out = self.proj(torch.cat([h[-2], h[-1]], dim=1))
+        x = pack_padded_sequence(x, lengths, batch_first=True, enforce_sorted=False)
+        _, (h, _) = self.lstm(x)
+        if self.bidirectional:
+            out = self.proj(torch.cat([h[-2], h[-1]], dim=1))
+        else:
+            out = self.proj(h[-1])
         return out
 
 
@@ -127,19 +135,25 @@ class BlipKb(FakeNewsBase):
 
         # encode knowledge
         kb_embeds = text_encodeds["kb_embeddings"].to(img_encodeds.device).to(torch.float32)
-        cnn_out = self.kb_encoder(kb_embeds)  # (total_kb, 768)
         kb_true_annotation_nums = text_encodeds["kb_true_annotation_nums"]
-        kb_embeds = []
-        # max num of kb entities in each sample is 32
-        # kb_atts = torch.zeros(image_atts.size(0), 32, dtype=torch.long).to(img_encodeds.device)
+        kb_true_desc_lengths = text_encodeds["kb_true_desc_lengths"]
         kb_atts = text_encodeds["kb_cross_atts"]  # (b, 32, s)
-        for i in range(len(kb_true_annotation_nums) - 1):
-            start, end = kb_true_annotation_nums[i], kb_true_annotation_nums[i + 1]
+
+        if isinstance(self.kb_encoder, LstmEncoder):
+            kb_out = self.kb_encoder(kb_embeds, kb_true_desc_lengths.detach().cpu())
+        else:
+            kb_out = self.kb_encoder(kb_embeds)  # (total_kb, 768)
+
+        # Split kb_out
+        kb_embeds = []
+        start = 0
+        for n in kb_true_annotation_nums:
+            end = start + n
             if start == end:
                 kb_embeds.append(self.null_entities)
             else:
-                kb_embeds.append(cnn_out[start:end])
-                # kb_atts[i, : end - start] = 1
+                kb_embeds.append(kb_out[start:end])
+            start = end
         kb_embeds = pad_sequence(
             kb_embeds, batch_first=True, padding_value=0
         )  # (N, max_length, 768)
@@ -149,15 +163,6 @@ class BlipKb(FakeNewsBase):
         image_kb_atts = torch.cat([image_atts, kb_atts], dim=-1)  # (b, s, l + max_length)
 
         text_encodeds.input_ids[:, 0] = self.blip.tokenizer.enc_token_id
-
-        # text embeddings
-        # text_embeds = self.blip.text_encoder.embeddings(
-        #     text_encodeds["input_ids"].to(img_encodeds.device),
-        # )
-
-        # concat text embeddings and knowledge embeddings
-        # text_kb_embeds = torch.cat([text_embeds, kb_embeds], dim=1)
-        # text_kb_atts = torch.cat([text_encodeds["attention_mask"], kb_atts], dim=1)
 
         output = self.blip.text_encoder(
             input_ids=text_encodeds["input_ids"],
@@ -197,7 +202,7 @@ if __name__ == "__main__":
     import pyrootutils
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
-    model_cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "simple_blip.yaml")
+    model_cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "blip_kb.yaml")
     dm_cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "weibo.yaml")
     with omegaconf.open_dict(dm_cfg):
         model_cfg["_target_"] = "src.models.blip_kb.BlipKb"

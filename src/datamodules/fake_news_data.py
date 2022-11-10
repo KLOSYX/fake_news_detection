@@ -207,20 +207,18 @@ class CollectorKB(Collector):
             else torch.cat(imgs, dim=0)
         )
         labels = torch.cat(labels)
-        true_annotation_nums = [
-            0,
-        ]
-        cnt = 0
-        for a in annotations:
-            cnt += len(a)
-            true_annotation_nums.append(cnt)
+        true_annotation_nums = [len(a) for a in annotations]
         embeddings = [x["vecs"] for x in chain.from_iterable(annotations) if x]
+        true_desc_lengths: torch.Tensor = torch.Tensor([e.shape[0] for e in embeddings]).to(
+            torch.long
+        )
         embeddings = pad_sequence(
             embeddings, batch_first=True, padding_value=0
         )  # (total_entities, max_desc_length, 300)
         # manually set max description length
         embeddings = embeddings[:, :128, :]
-        assert embeddings.shape[0] == true_annotation_nums[-1]
+        true_desc_lengths = torch.clamp(true_desc_lengths, max=128)
+        assert embeddings.shape[0] == sum(true_annotation_nums) == true_desc_lengths.size(0)
 
         cross_atts = self._get_cross_attention_mask(text_encodeds, annotations)
 
@@ -228,19 +226,14 @@ class CollectorKB(Collector):
             {
                 "kb_embeddings": embeddings,
                 "kb_true_annotation_nums": torch.Tensor(true_annotation_nums).to(torch.long),
-                "kb_cross_atts": torch.Tensor(cross_atts).to(torch.long),
+                "kb_cross_atts": cross_atts.to(torch.long),
+                "kb_true_desc_lengths": true_desc_lengths,
             }
         )
 
         return text_encodeds, img_encodeds, labels
 
-        pass
-        # TODO:
-        #  3. return cross attention mask
-        #  4. padding kb embedding to same length
-        #  5. be caution, might be empty
-
-    def _get_cross_attention_mask(self, text_encodeds, annotations):
+    def _get_cross_attention_mask(self, text_encodeds, annotations) -> torch.Tensor:
         atts = torch.zeros(text_encodeds.input_ids.size(0), text_encodeds.input_ids.size(1), 32)
         entity_map_list: List[Dict[int, int]] = []
         for ann in annotations:
