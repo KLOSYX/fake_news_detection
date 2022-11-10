@@ -52,6 +52,7 @@ class LstmEncoder(nn.Module):
         num_layers: int = 1,
         bidirectional: bool = True,
         dropout_prob: float = 0.4,
+        fc_hidden_size: int = 256,
         out_size: int = 768,
     ):
         super().__init__()
@@ -63,10 +64,13 @@ class LstmEncoder(nn.Module):
             dropout=dropout_prob,
             batch_first=True,
         )
-        self.proj = (
-            nn.Linear(hidden_size * 2, out_size)
+        self.proj = nn.Sequential(
+            nn.Linear(hidden_size * 2, fc_hidden_size)
             if bidirectional
-            else nn.Linear(hidden_size, out_size)
+            else nn.Linear(hidden_size, fc_hidden_size),
+            nn.ReLU(),
+            nn.Dropout(dropout_prob),
+            nn.Linear(fc_hidden_size, out_size),
         )
         self.bidirectional = bidirectional
 

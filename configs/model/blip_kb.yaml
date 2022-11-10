@@ -22,6 +22,7 @@ kb_encoder:
   hidden_size: 256
   bidirectional: true
   dropout_prob: 0.4
+  fc_hidden_size: 256
 is_freeze_blip: true
 fine_tune_visual_encoder: false
 fine_tune_text_encoder: true
