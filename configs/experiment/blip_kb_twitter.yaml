@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /datamodule: weibo.yaml
+  - override /datamodule: twitter.yaml
   - override /model: blip_kb.yaml
   - override /callbacks: default.yaml
   - override /trainer: gpu.yaml
@@ -13,7 +13,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-task_name: blip_kb_weibo
+task_name: blip_kb_twitter
 tags: ["fakenews", "multimodal", "classify", "blip"]
 monitor: val/accuracy
 
@@ -31,7 +31,7 @@ trainer:
 
 logger:
   wandb:
-    project: fakenews_weibo_blip_kb
+    project: fakenews_twitter_blip_kb
     tags: ${tags}
 
 callbacks:
@@ -44,8 +44,8 @@ callbacks:
     patience: 3
 
 model:
-  lr: 0.001
-  weight_decay: 0.05
+  lr: 1e-5
+  weight_decay: 0.3
   num_warmup_steps: 700
   dropout_prob: 0.0
   fc_hidden_size: 256
@@ -54,10 +54,10 @@ model:
   fine_tune_text_encoder: false
 
 datamodule:
-  train_path: ${paths.data_dir}/MM17-WeiboRumorSet/weibo_train_data_wiki.json
-  test_path: ${paths.data_dir}/MM17-WeiboRumorSet/weibo_test_data_wiki.json
+  train_path: ${paths.data_dir}/image-verification-corpus-master/twitter_train_data_wiki.json
+  test_path: ${paths.data_dir}/image-verification-corpus-master/twitter_test_data_wiki.json
   w2v_path: ${paths.data_dir}/wiki_desc_vec.npy
-  dataset_name: weibo_kb
+  dataset_name: twitter_kb
   tokenizer_name: None
   num_workers: 1
   batch_size: 2

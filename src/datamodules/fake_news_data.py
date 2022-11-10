@@ -165,6 +165,10 @@ class WeiboDatasetKB(WeiboDataset):
         )
 
 
+class TwitterDatasetKB(WeiboDatasetKB):
+    pass
+
+
 class Collector:
     def __init__(self, tokenizer: Any, processor: Optional[Any], max_length: int = 200) -> None:
         self.tokenizer = tokenizer
@@ -322,6 +326,8 @@ class MultiModalData(DatamoduleBase):
             self.dataset_cls = TwitterDatasetWithEvent
         elif dataset_name == "weibo_kb":
             self.dataset_cls = WeiboDatasetKB
+        elif dataset_name == "twitter_kb":
+            self.dataset_cls = TwitterDatasetKB
 
     def setup(self, stage: Optional[str] = None) -> None:
         self.collector = self._get_collector()
