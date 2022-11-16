@@ -188,11 +188,11 @@ def main(args):
     print(invalid_img_set)
 
     translated_train_data = pd.read_json(
-        root / "data" / "train_data_tencent_translated.json",
+        root / "data" / "image-verification-corpus-master" / "train_data_tencent_translated.json",
         lines=True,
     )
     translated_test_data = pd.read_json(
-        root / "data" / "test_data_tencent_translated.json",
+        root / "data" / "image-verification-corpus-master" / "test_data_tencent_translated.json",
         lines=True,
     )
 
@@ -256,11 +256,11 @@ def main(args):
             test_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)
         ]
 
-    # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
-    # all_data["event"] = all_data.imgs.apply(get_event_name)
-    # all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
-    # dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
-    # test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
+    all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
+    all_data["event"] = all_data.imgs.apply(get_event_name)
+    all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
+    dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
+    test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
 
     # ===== Update: remove event in test dataset =====
     dev_data_valid["event"] = dev_data_valid.imgs.apply(get_event_name)
@@ -268,7 +268,7 @@ def main(args):
     test_data_valid["event"] = -1
     # ===== end =====
 
-    # print(f"===== Training event number: {len(set(dev_data_valid.event))} ======")
+    print(f"===== Training event number: {len(set(dev_data_valid.event))} ======")
     # print(f"===== Testing event number: {len(set(test_data_valid.event))} ======")
 
     print(
@@ -281,13 +281,13 @@ def main(args):
         "\n",
     )
 
-    dev_data_valid[["post_id", "text", "imgs", "label"]].to_json(
+    dev_data_valid[["post_id", "text", "imgs", "label", "event"]].to_json(
         root / "data/image-verification-corpus-master/train_posts.json",
         lines=True,
         orient="records",
         force_ascii=False,
     )
-    test_data_valid[["post_id", "text", "imgs", "label"]].to_json(
+    test_data_valid[["post_id", "text", "imgs", "label", "event"]].to_json(
         root / "data/image-verification-corpus-master/test_posts.json",
         lines=True,
         orient="records",

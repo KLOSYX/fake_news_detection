@@ -43,6 +43,13 @@ def clean_text(text):
     text = re.sub(r"#", " #", text)
     text = re.sub(r"@", " @", text)
     text = re.sub(r"[\!\?\.\,\+\-\$\%\^\>\<\=\:\;\*\(\)\{\}\[\]\/\~\&\'\|]", " ", text)
+    text = re.sub(
+        r"(?<=[^.])((?:(?:https?|ftp|file)://|(?<![a-zA-Z\-\.])www\.)"
+        r"[\-A-Za-z0-9\+&@\(\)#/%\?=\~_|!:\,\.\;]+[\-A-Za-z0-9\+&@#/%=\~_\|])"
+        r"(?=[<\u4E00-\u9FA5￥，。；！？、“”‘’>（）—《》…● \t\n])",
+        " ",
+        text,
+    )  # remove URL
     text = text.strip()
     text = " ".join(text.split())
 
