@@ -1,13 +1,56 @@
 from pathlib import Path
 
 import torch
-import torch.nn.functional as F
 from einops import reduce
 from torch import nn
-from torchvision.models import VGG19_BN_Weights, vgg19_bn
-from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
+from torchvision.models import (
+    MobileNet_V3_Large_Weights,
+    VGG19_BN_Weights,
+    mobilenet_v3_large,
+    vgg19_bn,
+)
+from transformers import AutoModel, BertModel, get_constant_schedule_with_warmup
 
 from src.models.components.fake_news_base import FakeNewsBase
+
+
+class VGG19(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # modify the last fc layer of vgg
+        self.vgg_model = vgg19_bn(weights=VGG19_BN_Weights.IMAGENET1K_V1)
+        new_classifier = nn.Sequential(*list(self.vgg_model.children())[-1][:6])
+
+        self.fc = nn.Linear(self.vgg_model.classifier[6].in_features, 2742)
+        self.vgg_model.classifier = new_classifier
+
+        self.act = nn.ReLU()
+
+    def forward(self, x):
+        x = self.vgg_model(x)
+        x = self.fc(x)
+        x = self.act(x)
+        return x  # (batch_size, 2742)
+
+
+class MobileNetV3(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.mobilenetv3 = mobilenet_v3_large(weights=MobileNet_V3_Large_Weights.IMAGENET1K_V1)
+        new_classifier = nn.Sequential(*list(self.mobilenetv3.children())[-1][:3])
+
+        self.fc = nn.Linear(self.mobilenetv3.classifier[3].in_features, 2742)
+        self.mobilenetv3.classifier = new_classifier
+
+        self.act = nn.ReLU()
+
+    def forward(self, x):
+        x = self.mobilenetv3(x)
+        x = self.fc(x)
+        x = self.act(x)
+        return x  # (batch_size, 2742)
 
 
 class SpotFake(FakeNewsBase):
@@ -20,11 +63,8 @@ class SpotFake(FakeNewsBase):
         num_warmup_steps=400,
         dropout_prob=0.0,
         bert_name: str = "bert-base-chinese",
+        visual_encoder: nn.Module = VGG19(),
         pooler: str = "cls_token",
-        num_visual_hidden_layers=1,
-        visual_hidden_size=2742,
-        num_text_hidden_layers=1,
-        text_hidden_size=768,
     ) -> None:
         assert pooler in [
             "cls_token",
@@ -39,22 +79,28 @@ class SpotFake(FakeNewsBase):
         self.num_warmup_steps = num_warmup_steps
         self.pooler = pooler
 
-        bert_config = BertConfig.from_pretrained(bert_name, cache_dir=Path.home() / ".cache")
+        # bert_config = BertConfig.from_pretrained(bert_name, cache_dir=Path.home() / ".cache")
         # model
-        self.bert = BertModel.from_pretrained(
-            bert_name, cache_dir=Path.home() / ".cache", config=bert_config
-        )
-        self.vgg_model = vgg19_bn(weights=VGG19_BN_Weights.IMAGENET1K_V1)
+        self.bert = AutoModel.from_pretrained(bert_name, cache_dir=Path.home() / ".cache")
+        self.visual_encoder = visual_encoder
 
         # layers without trainable weights
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(dropout_prob)
 
         # fcs
-        self.img_fc1 = nn.Linear(self.vgg_model.classifier[6].in_features, 2742)
-        self.img_fc2 = nn.Linear(2742, 32)
-        self.text_fc1 = nn.Linear(self.bert.config.hidden_size, 768)
-        self.text_fc2 = nn.Linear(768, 32)
+        self.img_encoder = nn.Sequential(
+            self.dropout,
+            nn.Linear(2742, 32),
+            self.act,
+        )
+        self.text_encoder = nn.Sequential(
+            nn.Linear(self.bert.config.hidden_size, 768),
+            self.act,
+            self.dropout,
+            nn.Linear(768, 32),
+            self.act,
+        )
         self.fc = nn.Linear(64, 35)
         self.classifier = nn.Linear(35, 2)
 
@@ -65,18 +111,14 @@ class SpotFake(FakeNewsBase):
         # loss function
         self.criterion = nn.CrossEntropyLoss()
 
-        # modify the last fc layer of vgg
-        new_classifier = nn.Sequential(*list(self.vgg_model.children())[-1][:6])
-        self.vgg_model.classifier = new_classifier
-
         # freeze vgg
-        self._freeze(self.vgg_model)
+        # self._freeze(self.vgg_model)
 
         # freeze bert
-        self._freeze(self.bert)
+        # self._freeze(self.bert)
 
     def forward(self, text_encodeds, img_encodeds):
-        vgg_out = self.vgg_model(img_encodeds)
+        visual_out = self.visual_encoder(img_encodeds)  # (batch_size, 2742)
         if self.pooler == "pooler_output":
             bert_out = self.bert(**text_encodeds).pooler_output
         else:
@@ -95,19 +137,11 @@ class SpotFake(FakeNewsBase):
             bert_out = sum_embed / sum_mask
 
         # visual encoding
-        x1 = self.img_fc1(vgg_out)
-        x1 = self.act(x1)
-        x1 = self.dropout(x1)
-        x1 = self.img_fc2(x1)
-        x1 = self.act(x1)
+        x1 = self.img_encoder(visual_out)
         # x1 = self.dropout(x1)  # (N, 32)
 
         # text encoding
-        x2 = self.text_fc1(bert_out)
-        x2 = self.act(x2)
-        x2 = self.dropout(x2)  # (N, 768)
-        x2 = self.text_fc2(x2)
-        x2 = self.act(x2)
+        x2 = self.text_encoder(bert_out)
         # x2 = self.dropout(x2)  # (N, 32)
 
         # multimodal repr

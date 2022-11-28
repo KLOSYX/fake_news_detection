@@ -5,4 +5,6 @@ weight_decay: 0.05
 num_warmup_steps: 700
 dropout_prob: 0
 bert_name: bert-base-uncased
+visual_encoder:
+  _target_: src.models.spotfake.MobileNetV3
 pooler: cls_token

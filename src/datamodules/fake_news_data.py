@@ -12,7 +12,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, random_split
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
-from transformers import AutoFeatureExtractor, AutoTokenizer
+from transformers import AutoFeatureExtractor, AutoTokenizer, BertTokenizer
 
 from src.datamodules.components.dm_base import DatamoduleBase
 from src.models.components.blip_base import init_tokenizer
@@ -22,6 +22,7 @@ log = get_pylogger(__name__)
 
 DATASETS = [
     "weibo",
+    "weibo21",
     "twitter",
     "twitter_with_event",
     "weibo_with_event",
@@ -97,7 +98,7 @@ class WeiboDataset(Dataset):
         self.img_path = Path(img_path)
         # apply image transforms
         self.transforms = transforms
-        print("data size:", len(self.data))
+        log.info("Data size: %d" % len(self.data))
 
     def __len__(self) -> int:
         return len(self.data)
@@ -113,6 +114,10 @@ class WeiboDataset(Dataset):
             self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
         )
+
+
+class Weibo21Dataset(WeiboDataset):
+    pass
 
 
 class TwitterDataset(WeiboDataset):
@@ -296,6 +301,24 @@ class MultiModalData(DatamoduleBase):
         simclr_trans: bool = False,
         vis_model_type: str = "vgg",
     ):
+        """
+        Args:
+            img_path: path to image folder
+            train_path: path to train jsonl file
+            val_path: path to val jsonl file. If None, val_set_ratio will be used to split train set
+            test_path: path to test jsonl file
+            w2v_path: path to w2v file. Now only used when dataset contains knowledge
+            val_set_ratio: ratio of val set in train set
+            batch_size: batch size
+            num_workers: num of workers for dataloader
+            tokenizer_name: name of tokenizer
+            processor_name: name of processor. Used by some ViT based models
+            max_length: max length of text
+            dataset_name: name of dataset. Used to determine which dataset to use
+            use_test_as_val: whether to use test set as val set. If True, val_path will be ignored
+            simclr_trans: whether to use simclr transformation
+            vis_model_type: type of visual model. Used to determine which image processor to use
+        """
         assert dataset_name in DATASETS
         assert vis_model_type in VISUAL_MODEL_TYPES
         super().__init__(val_set_ratio, batch_size, num_workers)
@@ -322,6 +345,8 @@ class MultiModalData(DatamoduleBase):
         self.vis_model_type = vis_model_type
         if dataset_name == "weibo":
             self.dataset_cls = WeiboDataset
+        elif dataset_name == "weibo21":
+            self.dataset_cls = Weibo21Dataset
         elif dataset_name == "twitter":
             self.dataset_cls = TwitterDataset
         elif dataset_name == "twitter_with_event":
@@ -344,7 +369,6 @@ class MultiModalData(DatamoduleBase):
                     assert (
                         train_size >= 1 and val_size >= 1
                     ), "Train size or val size is smaller than 1!"
-                    print("Train size", train_size, "Val size", val_size)
                     self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
                 else:
                     # val set is from val data
@@ -354,12 +378,13 @@ class MultiModalData(DatamoduleBase):
                 # val set is from test data
                 self.train_data = dataset
                 self.val_data = self._get_dataset("test")
-                print("Train size", len(self.train_data), "Val size", len(self.val_data))
+
+            log.info("Train size: %d, Val size: %d", len(self.train_data), len(self.val_data))
 
         if stage == "test" or stage is None:
             # test set is not ready until stage is test
             self.test_data = self._get_dataset(stage)
-            print("Test size", len(self.test_data))
+            log.info("Test size: %d" % len(self.test_data))
 
     def _get_collector(self) -> Any:
         """Get collector for dataset.

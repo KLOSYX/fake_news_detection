@@ -1,0 +1,15 @@
+_target_: src.datamodules.fake_news_data.MultiModalData
+
+img_path: ${paths.data_dir}/weibo21/images
+dataset_name: weibo21
+tokenizer_name: bert-base-chinese
+processor_name: null
+train_path: ${paths.data_dir}/weibo21/train_data.json
+val_path: ${paths.data_dir}/weibo21/val_data.json
+test_path: ${paths.data_dir}/weibo21/test_data.json
+max_length: 200
+val_set_ratio: 0.1
+batch_size: 32
+num_workers: 0
+use_test_as_val: false
+vis_model_type: vgg
