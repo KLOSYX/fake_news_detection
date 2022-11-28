@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from enum import Enum
+from dataclasses import dataclass, field
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -64,12 +63,24 @@ class RawData:
 
 @dataclass
 class FakeNewsItem:
+    """Fake news item class.
+
+    Args:
+        text_encoded: encoded text data
+        image_encoded: encoded image data
+        label: label data
+        event_label: event label data
+
+    Returns:
+        FakeNewsItem: FakeNewsItem object
+    """
+
     text_encoded: Optional[BatchEncoding] = None
     image_encoded: Optional[Union[BatchFeature, torch.Tensor]] = None
     label: Optional[torch.Tensor] = None
     event_label: Optional[torch.Tensor] = None
 
-    def to(self, device: torch.device) -> "FakeNewsItem":
+    def to(self, device: Union[str, torch.device]) -> "FakeNewsItem":
         """Move tensors to device."""
         if self.text_encoded is not None:
             self.text_encoded = self.text_encoded.to(device)
@@ -384,9 +395,9 @@ class MultiModalData(DatamoduleBase):
             simclr_trans: whether to use simclr transformation
             vis_model_type: type of visual model. Used to determine which image processor to use
         """
-        assert dataset_name in DATASETS
         assert vis_model_type in VISUAL_MODEL_TYPES
         super().__init__(val_set_ratio, batch_size, num_workers)
+        self.dataset_cls = self._get_dataset_class(dataset_name)
         self.img_path = img_path
         self.train_path = train_path
         self.val_path = val_path
@@ -408,18 +419,6 @@ class MultiModalData(DatamoduleBase):
         self.use_test_as_val = use_test_as_val
         self.simclr_trans = simclr_trans
         self.vis_model_type = vis_model_type
-        if dataset_name == "weibo":
-            self.dataset_cls = WeiboDataset
-        elif dataset_name == "weibo21":
-            self.dataset_cls = Weibo21Dataset
-        elif dataset_name == "twitter":
-            self.dataset_cls = TwitterDataset
-        elif dataset_name == "twitter_with_event":
-            self.dataset_cls = TwitterDatasetWithEvent
-        elif dataset_name == "weibo_kb":
-            self.dataset_cls = WeiboDatasetKB
-        elif dataset_name == "twitter_kb":
-            self.dataset_cls = TwitterDatasetKB
 
     def setup(self, stage: Optional[str] = None) -> None:
         self.collector = self._get_collector()
@@ -470,6 +469,22 @@ class MultiModalData(DatamoduleBase):
         else:
             log.debug(f"Using Collector for {self.dataset_name}")
             return Collector(**params)
+
+    @staticmethod
+    def _get_dataset_class(dataset_name: str) -> Any:
+        assert dataset_name in DATASETS
+        dataset_cls = WeiboDataset
+        if dataset_name == "weibo21":
+            dataset_cls = Weibo21Dataset
+        elif dataset_name == "twitter":
+            dataset_cls = TwitterDataset
+        elif dataset_name == "twitter_with_event":
+            dataset_cls = TwitterDatasetWithEvent
+        elif dataset_name == "weibo_kb":
+            dataset_cls = WeiboDatasetKB
+        elif dataset_name == "twitter_kb":
+            dataset_cls = TwitterDatasetKB
+        return dataset_cls
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
         # get dataset path
