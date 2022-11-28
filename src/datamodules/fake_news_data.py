@@ -1,4 +1,5 @@
-from collections import defaultdict
+from dataclasses import dataclass
+from enum import Enum
 from itertools import chain
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -12,7 +13,13 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset, random_split
 from torchvision import transforms
 from torchvision.transforms import InterpolationMode
-from transformers import AutoFeatureExtractor, AutoTokenizer, BertTokenizer
+from transformers import (
+    AutoFeatureExtractor,
+    AutoTokenizer,
+    BatchEncoding,
+    BatchFeature,
+    BertTokenizer,
+)
 
 from src.datamodules.components.dm_base import DatamoduleBase
 from src.models.components.blip_base import init_tokenizer
@@ -31,6 +38,48 @@ DATASETS = [
 ]
 
 VISUAL_MODEL_TYPES = ["vgg", "blip", "other"]
+
+
+@dataclass(frozen=True)
+class RawData:
+    """Raw data class.
+
+    Args:
+        text: text data
+        image: image data, could be None, Image.Image, or Tensor
+        label: label data, could be None, int, or List[int]
+        event: event data, could be None, int, or List[int]
+        kb_annotations: knowledge base annotations, could be None or List[Dict]]
+
+    Returns:
+        RawData: RawData object
+    """
+
+    text: Optional[str] = None
+    image: Optional[Union[Image.Image, torch.Tensor]] = None
+    label: Optional[torch.Tensor] = None
+    event: Optional[torch.Tensor] = None
+    kb_annotations: Optional[List[Dict]] = None
+
+
+@dataclass
+class FakeNewsItem:
+    text_encoded: Optional[BatchEncoding] = None
+    image_encoded: Optional[Union[BatchFeature, torch.Tensor]] = None
+    label: Optional[torch.Tensor] = None
+    event_label: Optional[torch.Tensor] = None
+
+    def to(self, device: torch.device) -> "FakeNewsItem":
+        """Move tensors to device."""
+        if self.text_encoded is not None:
+            self.text_encoded = self.text_encoded.to(device)
+        if self.image_encoded is not None:
+            self.image_encoded = self.image_encoded.to(device)
+        if self.label is not None:
+            self.label = self.label.to(device)
+        if self.event_label is not None:
+            self.event_label = self.event_label.to(device)
+        return self
 
 
 class GaussianBlur:
@@ -103,13 +152,13 @@ class WeiboDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> RawData:
         text = self.data.iloc[idx]["text"]
         img_name = self.data.iloc[idx]["imgs"]
         img_path = self.img_path / img_name
         img = Image.open(img_path).convert("RGB")
         label = self.data.iloc[idx]["label"]
-        return (
+        return RawData(
             text,
             self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
@@ -125,14 +174,14 @@ class TwitterDataset(WeiboDataset):
 
 
 class TwitterDatasetWithEvent(TwitterDataset):
-    def __getitem__(self, idx: int) -> Tuple[str, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(self, idx: int) -> RawData:
         text = self.data.iloc[idx]["text"]
         img_name = self.data.iloc[idx]["imgs"]
         img_path = self.img_path / img_name
         img = Image.open(img_path).convert("RGB")
         label = self.data.iloc[idx]["label"]
         event_label = self.data.iloc[idx]["event"]
-        return (
+        return RawData(
             text,
             self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
@@ -152,7 +201,7 @@ class WeiboDatasetKB(WeiboDataset):
         self.w2v = np.load(w2v_path)
         # self.w2v = torch.from_numpy(self.w2v).float()
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> RawData:
         text = self.data.iloc[idx]["text"]
         img_name = self.data.iloc[idx]["imgs"]
         img_path = self.img_path / img_name
@@ -162,10 +211,11 @@ class WeiboDatasetKB(WeiboDataset):
         for a in annotations:
             a["vecs"] = torch.from_numpy(self.w2v[a["ids"]])
             a.pop("ids")
-        return (
+        return RawData(
             text,
             self.transforms(img).unsqueeze(0) if self.transforms else img,
             torch.tensor([label], dtype=torch.long),
+            None,
             annotations,
         )
 
@@ -180,8 +230,12 @@ class Collector:
         self.processor = processor
         self.max_length = max_length
 
-    def __call__(self, data: List) -> Tuple:
-        texts, imgs, labels = zip(*data)
+    def __call__(self, data: List[RawData]) -> FakeNewsItem:
+        texts, imgs, labels = [], [], []
+        for d in data:
+            texts.append(d.text)
+            imgs.append(d.image)
+            labels.append(d.label)
         text_encodeds = self.tokenizer(
             list(texts),
             padding=True,
@@ -196,12 +250,17 @@ class Collector:
         )
         # image agumentation here, todo...
         labels = torch.cat(labels)
-        return text_encodeds, img_encodeds, labels
+        return FakeNewsItem(text_encodeds, img_encodeds, labels)
 
 
 class CollectorKB(Collector):
-    def __call__(self, data: List) -> Tuple:
-        texts, imgs, labels, annotations = zip(*data)
+    def __call__(self, data: List[RawData]) -> FakeNewsItem:
+        texts, imgs, labels, annotations = [], [], [], []
+        for d in data:
+            texts.append(d.text)
+            imgs.append(d.image)
+            labels.append(d.label)
+            annotations.append(d.kb_annotations)
         text_encodeds = self.tokenizer(
             list(texts),
             padding=True,
@@ -240,9 +299,10 @@ class CollectorKB(Collector):
             }
         )
 
-        return text_encodeds, img_encodeds, labels
+        return FakeNewsItem(text_encodeds, img_encodeds, labels)
 
-    def _get_cross_attention_mask(self, text_encodeds, annotations) -> torch.Tensor:
+    @staticmethod
+    def _get_cross_attention_mask(text_encodeds, annotations) -> torch.Tensor:
         atts = torch.zeros(text_encodeds.input_ids.size(0), text_encodeds.input_ids.size(1), 32)
         entity_map_list: List[Dict[int, int]] = []
         for ann in annotations:
@@ -262,8 +322,13 @@ class CollectorKB(Collector):
 
 
 class CollectorWithEvent(Collector):
-    def __call__(self, data: List) -> Tuple:
-        texts, imgs, labels, event_labels = zip(*data)
+    def __call__(self, data: List[RawData]) -> FakeNewsItem:
+        texts, imgs, labels, event_labels = [], [], [], []
+        for d in data:
+            texts.append(d.text)
+            imgs.append(d.image)
+            labels.append(d.label)
+            event_labels.append(d.event)
         text_encodeds = self.tokenizer(
             list(texts),
             padding=True,
@@ -279,7 +344,7 @@ class CollectorWithEvent(Collector):
         # image agumentation here, todo...
         labels = torch.cat(labels)
         event_labels = torch.cat(event_labels)
-        return text_encodeds, img_encodeds, labels, event_labels
+        return FakeNewsItem(text_encodeds, img_encodeds, labels, event_labels)
 
 
 class MultiModalData(DatamoduleBase):

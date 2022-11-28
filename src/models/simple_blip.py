@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from transformers import get_constant_schedule_with_warmup
 
+from src.datamodules.fake_news_data import FakeNewsItem
 from src.models.components.blip_base import blip_feature_extractor
 from src.models.components.fake_news_base import FakeNewsBase
 
@@ -47,8 +48,8 @@ class SimpleBlip(FakeNewsBase):
                 for n, p in self.blip.text_encoder.named_parameters():
                     p.requires_grad = True
 
-    def forward(self, text_encodeds, img_encodeds):
-        mm_features = self.blip(img_encodeds, text_encodeds, mode="multimodal")[
+    def forward(self, item: FakeNewsItem):
+        mm_features = self.blip(item.image_encoded, item.text_encoded, mode="multimodal")[
             :, 0, :
         ]  # (N, 768)
         logits = self.classifier(mm_features)

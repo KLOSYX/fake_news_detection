@@ -5,6 +5,7 @@ import transformers
 from einops import reduce
 from torch import nn
 
+from src.datamodules.fake_news_data import FakeNewsItem
 from src.models.components.fake_news_base import FakeNewsBase
 
 
@@ -54,17 +55,17 @@ class ViLT(FakeNewsBase):
         # criterion
         self.criterion = nn.CrossEntropyLoss()
 
-    def forward(self, text_encodeds, img_encodeds):
-        text_encodeds.update(img_encodeds)
+    def forward(self, item: FakeNewsItem):
+        item.text_encoded.update(item.image_encoded)
         outputs = self.model(
-            **text_encodeds,
+            **item.text_encoded,
         )
 
         if self.pooler == "cls_token":
             bert_out = outputs.pooler_output
         else:
             attention_mask: torch.Tensor = torch.concat(
-                [text_encodeds["attention_mask"], img_encodeds["pixel_mask"]], dim=1
+                [item.text_encoded["attention_mask"], item.image_encoded["pixel_mask"]], dim=1
             )
             sequence_out: torch.Tensor = outputs.last_hidden_state  # [N, L, d]
             input_mask_expanded: torch.Tensor = (

@@ -5,6 +5,8 @@ import torch
 import torchmetrics
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 
+from src.datamodules.fake_news_data import FakeNewsItem
+
 
 class FakeNewsBase(pl.LightningModule):
     def __init__(self, *args, **kwargs) -> None:
@@ -47,11 +49,11 @@ class FakeNewsBase(pl.LightningModule):
         # so we need to make sure val_acc_best doesn't store accuracy from these checks
         self.val_best.reset()
 
-    def forward_loss(self, batch):
-        text_encodeds, img_encodeds, labels = batch
-        logits = self(text_encodeds, img_encodeds)  # [N, 2]
-        loss = self.criterion(logits, labels)
-        return logits, labels, loss
+    def forward_loss(self, batch: FakeNewsItem) -> tuple:
+        # text_encodeds, img_encodeds, labels = batch
+        logits = self(batch)  # [N, 2]
+        loss = self.criterion(logits, batch.label)
+        return logits, batch.label, loss
 
     def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
         logits, labels, loss = self.forward_loss(batch)

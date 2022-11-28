@@ -15,6 +15,7 @@ from torch.autograd import Function, Variable
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
 from transformers import BertConfig, BertModel
 
+from src.datamodules.fake_news_data import FakeNewsItem
 from src.models.components.fake_news_base import FakeNewsBase
 
 
@@ -156,20 +157,19 @@ class BDANN(FakeNewsBase):
         # self.domain_criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
-    def forward(self, text_encodeds, img_encodeds):
-        class_output, domain_output = self.model(text_encodeds, img_encodeds)
+    def forward(self, item: FakeNewsItem):
+        class_output, domain_output = self.model(item.text_encoded, item.image_encoded)
         return class_output, domain_output
 
-    def forward_loss(self, batch):
-        text_encodeds, img_encodeds, labels, event_labels = batch
-        class_output, domain_output = self.forward(text_encodeds, img_encodeds)
-        class_loss = self.criterion(class_output, labels)
-        domain_loss = self.criterion(domain_output, event_labels)
+    def forward_loss(self, item: FakeNewsItem):
+        class_output, domain_output = self.forward(item)
+        class_loss = self.criterion(class_output, item.label)
+        domain_loss = self.criterion(domain_output, item.event_label)
         loss = class_loss + domain_loss
-        return class_output, labels, loss, class_loss, domain_loss
+        return class_output, item.label, loss, class_loss, domain_loss
 
-    def training_step(self, batch, batch_idx) -> STEP_OUTPUT:
-        logits, labels, loss, class_loss, domain_loss = self.forward_loss(batch)
+    def training_step(self, item: FakeNewsItem, batch_idx: int) -> STEP_OUTPUT:
+        logits, labels, loss, class_loss, domain_loss = self.forward_loss(item)
         preds = torch.argmax(logits, dim=1)  # (N,)
         self.log_dict(
             {
@@ -182,8 +182,8 @@ class BDANN(FakeNewsBase):
         self.log_dict(train_metrics_dict)
         return loss
 
-    def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        logits, labels, _, class_loss, _ = self.forward_loss(batch)
+    def validation_step(self, item: FakeNewsItem, batch_idx: int) -> Optional[STEP_OUTPUT]:
+        logits, labels, _, class_loss, _ = self.forward_loss(item)
         self.log_dict(
             {
                 "val/loss": class_loss,
@@ -192,8 +192,8 @@ class BDANN(FakeNewsBase):
         )
         return (logits, labels)
 
-    def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
-        logits, labels, _, class_loss, _ = self.forward_loss(batch)
+    def test_step(self, item: FakeNewsItem, batch_idx: int) -> Optional[STEP_OUTPUT]:
+        logits, labels, _, class_loss, _ = self.forward_loss(item)
         self.log_dict(
             {
                 "test/loss": class_loss,

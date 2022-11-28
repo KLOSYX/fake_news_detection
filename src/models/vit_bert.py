@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from transformers import BertConfig, ViTModel, get_constant_schedule_with_warmup
 
+from src.datamodules.fake_news_data import FakeNewsItem
 from src.models.components.fake_news_base import FakeNewsBase
 from src.models.components.med import BertModel
 
@@ -60,16 +61,16 @@ class VitBert(FakeNewsBase):
                 if "crossattention" in n:
                     p.requires_grad = True
 
-    def forward(self, text_encodes, img_encodes):
+    def forward(self, item: FakeNewsItem):
         # loss for mlm
-        encoder_outputs = self.visual_encoder(**img_encodes, return_dict=True)
+        encoder_outputs = self.visual_encoder(**item.image_encoded, return_dict=True)
         last_visual_tokens: torch.Tensor = encoder_outputs.last_hidden_state  # (N, L, dim)
         encoder_attention_mask = torch.ones(
             last_visual_tokens.size(0), last_visual_tokens.size(1)
         ).to(last_visual_tokens.device)
         outputs = self.text_decoder(
-            input_ids=text_encodes.input_ids,
-            attention_mask=text_encodes.attention_mask,
+            input_ids=item.text_encoded.input_ids,
+            attention_mask=item.text_encoded.attention_mask,
             encoder_hidden_states=last_visual_tokens,
             encoder_attention_mask=encoder_attention_mask,
             return_dict=True,

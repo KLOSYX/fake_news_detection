@@ -11,6 +11,7 @@ from torchvision.models import (
 )
 from transformers import AutoModel, BertModel, get_constant_schedule_with_warmup
 
+from src.datamodules.fake_news_data import FakeNewsItem
 from src.models.components.fake_news_base import FakeNewsBase
 
 
@@ -117,14 +118,16 @@ class SpotFake(FakeNewsBase):
         # freeze bert
         # self._freeze(self.bert)
 
-    def forward(self, text_encodeds, img_encodeds):
-        visual_out = self.visual_encoder(img_encodeds)  # (batch_size, 2742)
+    def forward(self, item: FakeNewsItem) -> torch.Tensor:
+        visual_out = self.visual_encoder(item.image_encoded)  # (batch_size, 2742)
         if self.pooler == "pooler_output":
-            bert_out = self.bert(**text_encodeds).pooler_output
+            bert_out = self.bert(**item.text_encoded).pooler_output
         else:
             # bert_out = []
-            attention_mask: torch.Tensor = text_encodeds.attention_mask  # [N, L]
-            sequence_out: torch.Tensor = self.bert(**text_encodeds).last_hidden_state  # [N, L, d]
+            attention_mask: torch.Tensor = item.text_encoded.attention_mask  # [N, L]
+            sequence_out: torch.Tensor = self.bert(
+                **item.text_encoded
+            ).last_hidden_state  # [N, L, d]
             input_mask_expanded: torch.Tensor = (
                 attention_mask.unsqueeze(-1).expand(sequence_out.size()).float()
             )
