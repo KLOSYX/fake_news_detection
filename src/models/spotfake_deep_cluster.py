@@ -7,10 +7,11 @@ from torch import nn
 from torchvision.models import VGG19_BN_Weights, vgg19_bn
 from transformers import BertConfig, BertModel, get_constant_schedule_with_warmup
 
+import src.models.components.clustering as clustering
 from src.models.components.fake_news_base import FakeNewsBase
 
 
-class SpotFake(FakeNewsBase):
+class SpotFakeDeepCluster(FakeNewsBase):
     """implement of SpotFake: http://arxiv.org/abs/2108.10509."""
 
     def __init__(
@@ -25,6 +26,7 @@ class SpotFake(FakeNewsBase):
         visual_hidden_size=2742,
         num_text_hidden_layers=1,
         text_hidden_size=768,
+        num_clusters=32,
     ) -> None:
         assert pooler in [
             "cls_token",
@@ -51,10 +53,26 @@ class SpotFake(FakeNewsBase):
         self.dropout = nn.Dropout(dropout_prob)
 
         # fcs
-        self.img_fc1 = nn.Linear(self.vgg_model.classifier[6].in_features, 2742)
-        self.img_fc2 = nn.Linear(2742, 32)
-        self.text_fc1 = nn.Linear(self.bert.config.hidden_size, 768)
-        self.text_fc2 = nn.Linear(768, 32)
+        self.img_encoder = nn.Sequential(
+            nn.Linear(self.vgg_model.classifier[6].in_features, 2742),
+            self.act,
+            self.dropout,
+            nn.Linear(2742, 32),
+            self.act,
+        )
+        self.text_encoder = nn.Sequential(
+            nn.Linear(self.bert.config.hidden_size, 768),
+            self.act,
+            self.dropout,
+            nn.Linear(768, 32),
+            self.act,
+        )
+        self.domain_classifier = nn.Sequential(
+            nn.Linear(64, 32),
+            self.act,
+            self.dropout,
+            nn.Linear(32, num_clusters),
+        )
         self.fc = nn.Linear(64, 35)
         self.classifier = nn.Linear(35, 2)
 
@@ -68,6 +86,9 @@ class SpotFake(FakeNewsBase):
         # modify the last fc layer of vgg
         new_classifier = nn.Sequential(*list(self.vgg_model.children())[-1][:6])
         self.vgg_model.classifier = new_classifier
+
+        # clustering
+        self.deepcluster = clustering.Kmeans(num_clusters)
 
         # freeze vgg
         self._freeze(self.vgg_model)
@@ -95,19 +116,11 @@ class SpotFake(FakeNewsBase):
             bert_out = sum_embed / sum_mask
 
         # visual encoding
-        x1 = self.img_fc1(vgg_out)
-        x1 = self.act(x1)
-        x1 = self.dropout(x1)
-        x1 = self.img_fc2(x1)
-        x1 = self.act(x1)
+        x1 = self.img_encoder(vgg_out)
         # x1 = self.dropout(x1)  # (N, 32)
 
         # text encoding
-        x2 = self.text_fc1(bert_out)
-        x2 = self.act(x2)
-        x2 = self.dropout(x2)  # (N, 768)
-        x2 = self.text_fc2(x2)
-        x2 = self.act(x2)
+        x2 = self.text_encoder(bert_out)
         # x2 = self.dropout(x2)  # (N, 32)
 
         # multimodal repr

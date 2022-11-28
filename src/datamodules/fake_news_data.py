@@ -282,6 +282,7 @@ class MultiModalData(DatamoduleBase):
         self,
         img_path: str,
         train_path: Optional[str] = None,
+        val_path: Optional[str] = None,
         test_path: Optional[str] = None,
         w2v_path: Optional[str] = None,
         val_set_ratio: float = 0.2,
@@ -300,6 +301,7 @@ class MultiModalData(DatamoduleBase):
         super().__init__(val_set_ratio, batch_size, num_workers)
         self.img_path = img_path
         self.train_path = train_path
+        self.val_path = val_path
         self.test_path = test_path
         self.w2v_path = w2v_path
         if vis_model_type == "blip":
@@ -334,23 +336,36 @@ class MultiModalData(DatamoduleBase):
         if stage == "fit" or stage is None:
             dataset = self._get_dataset(stage)
             if not self.use_test_as_val:
-                val_size = max(int(len(dataset) * self.val_ratio), 1)
-                train_size = len(dataset) - val_size
-                assert (
-                    train_size >= 1 and val_size >= 1
-                ), "Train size or val size is smaller than 1!"
-                print("Train size", train_size, "Val size", val_size)
-                self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
+                # val set is either from train data or val data
+                if self.val_path is None:
+                    # val set is from train data
+                    val_size = max(int(len(dataset) * self.val_ratio), 1)
+                    train_size = len(dataset) - val_size
+                    assert (
+                        train_size >= 1 and val_size >= 1
+                    ), "Train size or val size is smaller than 1!"
+                    print("Train size", train_size, "Val size", val_size)
+                    self.train_data, self.val_data = random_split(dataset, [train_size, val_size])
+                else:
+                    # val set is from val data
+                    self.train_data = self._get_dataset("fit")
+                    self.val_data = self._get_dataset("val")
             else:
+                # val set is from test data
                 self.train_data = dataset
                 self.val_data = self._get_dataset("test")
                 print("Train size", len(self.train_data), "Val size", len(self.val_data))
 
         if stage == "test" or stage is None:
+            # test set is not ready until stage is test
             self.test_data = self._get_dataset(stage)
             print("Test size", len(self.test_data))
 
     def _get_collector(self) -> Any:
+        """Get collector for dataset.
+
+        Adjust to different dataset name.
+        """
         params = dict(
             tokenizer=self.tokenizer,
             processor=self.processor,
@@ -367,22 +382,36 @@ class MultiModalData(DatamoduleBase):
             return Collector(**params)
 
     def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
+        # get dataset path
+        if stage == "fit":
+            data_path = self.train_path
+        elif stage == "val":
+            data_path = self.val_path
+        else:
+            data_path = self.test_path
+
+        # set up initial params
         params = dict(
             img_path=self.img_path,
-            data_path=self.train_path if stage == "fit" or stage is None else self.test_path,
+            data_path=data_path,
             transforms=self._get_transforms(self.vis_model_type),
         )
+
+        # add params for different dataset
         if self.simclr_trans:
             log.debug(f"Using simclr transform in {self.dataset_name}")
             params["transforms"] = self._get_simclr_pipeline_transform(224)
         else:
             log.debug(f"Not using simclr transform in {self.dataset_name}")
+
         if "kb" in self.dataset_name:
             params["w2v_path"] = self.w2v_path
+
         return self.dataset_cls(**params)
 
     @staticmethod
     def _get_transforms(vis_model_type: str = "vgg", image_size: int = 224) -> transforms.Compose:
+        """Get transforms for different visual model type."""
         trans = None
         if vis_model_type == "vgg":
             log.debug("Using vgg transform")

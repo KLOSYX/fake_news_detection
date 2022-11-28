@@ -8,32 +8,33 @@ import time
 
 import faiss
 import numpy as np
-from PIL import Image
-from PIL import ImageFile
-from scipy.sparse import csr_matrix, find
 import torch
 import torch.utils.data as data
 import torchvision.transforms as transforms
+from PIL import Image, ImageFile
+from scipy.sparse import csr_matrix, find
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-__all__ = ['PIC', 'Kmeans', 'cluster_assign', 'arrange_clustering']
+__all__ = ["PIC", "Kmeans", "cluster_assign", "arrange_clustering"]
 
 
 def pil_loader(path):
     """Loads an image.
+
     Args:
         path (string): path to image file
     Returns:
         Image
     """
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         img = Image.open(f)
-        return img.convert('RGB')
+        return img.convert("RGB")
 
 
 class ReassignedDataset(data.Dataset):
     """A dataset where the new images labels are given in argument.
+
     Args:
         image_indexes (list): list of data indexes
         pseudolabels (list): list of labels for each data
@@ -82,10 +83,10 @@ def preprocess_features(npdata, pca=256):
         np.array of dim N * pca: data PCA-reduced, whitened and L2-normalized
     """
     _, ndim = npdata.shape
-    npdata =  npdata.astype('float32')
+    npdata = npdata.astype("float32")
 
     # Apply PCA-whitening with Faiss
-    mat = faiss.PCAMatrix (ndim, pca, eigen_power=-0.5)
+    mat = faiss.PCAMatrix(ndim, pca, eigen_power=-0.5)
     mat.train(npdata)
     assert mat.is_trained
     npdata = mat.apply_py(npdata)
@@ -99,6 +100,7 @@ def preprocess_features(npdata, pca=256):
 
 def make_graph(xb, nnn):
     """Builds a graph of nearest neighbors.
+
     Args:
         xb (np.array): data
         nnn (int): number of nearest neighbors
@@ -122,6 +124,7 @@ def make_graph(xb, nnn):
 
 def cluster_assign(images_lists, dataset):
     """Creates a dataset from clustering, with clusters as labels.
+
     Args:
         images_lists (list of list): for each cluster, the list of image indexes
                                     belonging to this cluster
@@ -137,18 +140,22 @@ def cluster_assign(images_lists, dataset):
         image_indexes.extend(images)
         pseudolabels.extend([cluster] * len(images))
 
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
-    t = transforms.Compose([transforms.RandomResizedCrop(224),
-                            transforms.RandomHorizontalFlip(),
-                            transforms.ToTensor(),
-                            normalize])
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    t = transforms.Compose(
+        [
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            normalize,
+        ]
+    )
 
     return ReassignedDataset(image_indexes, pseudolabels, dataset, t)
 
 
 def run_kmeans(x, nmb_clusters, verbose=False):
     """Runs kmeans on 1 GPU.
+
     Args:
         x: data
         nmb_clusters (int): number of clusters
@@ -178,7 +185,7 @@ def run_kmeans(x, nmb_clusters, verbose=False):
     _, I = index.search(x, 1)
     losses = faiss.vector_to_array(clus.obj)
     if verbose:
-        print('k-means loss evolution: {0}'.format(losses))
+        print(f"k-means loss evolution: {losses}")
 
     return [int(n[0]) for n in I], losses[-1]
 
@@ -193,14 +200,14 @@ def arrange_clustering(images_lists):
     return np.asarray(pseudolabels)[indexes]
 
 
-class Kmeans(object):
+class Kmeans:
     def __init__(self, k):
         self.k = k
 
     def cluster(self, data, verbose=False):
         """Performs k-means clustering.
-            Args:
-                x_data (np.array N * dim): data to cluster
+        Args:
+            x_data (np.array N * dim): data to cluster
         """
         end = time.time()
 
@@ -214,7 +221,7 @@ class Kmeans(object):
             self.images_lists[I[i]].append(i)
 
         if verbose:
-            print('k-means time: {0:.0f} s'.format(time.time() - end))
+            print(f"k-means time: {time.time() - end:.0f} s")
 
         return loss
 
@@ -247,7 +254,7 @@ def make_adjacencyW(I, D, sigma):
 
 
 def run_pic(I, D, sigma, alpha):
-    """Run PIC algorithm"""
+    """Run PIC algorithm."""
     a = make_adjacencyW(I, D, sigma)
     graph = a + a.transpose()
     cgraph = graph
@@ -259,12 +266,12 @@ def run_pic(I, D, sigma, alpha):
     v0 = np.ones(nim) / nim
 
     # power iterations
-    v = v0.astype('float32')
+    v = v0.astype("float32")
 
     t0 = time.time()
     dt = 0
     for i in range(200):
-        vnext = np.zeros(nim, dtype='float32')
+        vnext = np.zeros(nim, dtype="float32")
 
         vnext = vnext + W.transpose().dot(v)
 
@@ -281,7 +288,7 @@ def run_pic(I, D, sigma, alpha):
 
 def find_maxima_cluster(W, v):
     n, m = W.shape
-    assert (n == m)
+    assert n == m
     assign = np.zeros(n)
     # for each node
     pointers = list(range(n))
@@ -308,24 +315,25 @@ def find_maxima_cluster(W, v):
             current_node = pointers[current_node]
 
         assign[i] = cluster_ids[current_node]
-        assert (assign[i] >= 0)
+        assert assign[i] >= 0
     return assign
 
 
-class PIC(object):
+class PIC:
     """Class to perform Power Iteration Clustering on a graph of nearest neighbors.
-        Args:
-            args: for consistency with k-means init
-            sigma (float): bandwidth of the Gaussian kernel (default 0.2)
-            nnn (int): number of nearest neighbors (default 5)
-            alpha (float): parameter in PIC (default 0.001)
-            distribute_singletons (bool): If True, reassign each singleton to
-                                      the cluster of its closest non
-                                      singleton nearest neighbors (up to nnn
-                                      nearest neighbors).
-        Attributes:
-            images_lists (list of list): for each cluster, the list of image indexes
-                                         belonging to this cluster
+
+    Args:
+        args: for consistency with k-means init
+        sigma (float): bandwidth of the Gaussian kernel (default 0.2)
+        nnn (int): number of nearest neighbors (default 5)
+        alpha (float): parameter in PIC (default 0.001)
+        distribute_singletons (bool): If True, reassign each singleton to
+                                  the cluster of its closest non
+                                  singleton nearest neighbors (up to nnn
+                                  nearest neighbors).
+    Attributes:
+        images_lists (list of list): for each cluster, the list of image indexes
+                                     belonging to this cluster
     """
 
     def __init__(self, args=None, sigma=0.2, nnn=5, alpha=0.001, distribute_singletons=True):
@@ -374,5 +382,5 @@ class PIC(object):
             self.images_lists.append(images_lists[c])
 
         if verbose:
-            print('pic time: {0:.0f} s'.format(time.time() - end))
+            print(f"pic time: {time.time() - end:.0f} s")
         return 0
