@@ -20,16 +20,20 @@ from src.models.components.fake_news_base import FakeNewsBase
 
 
 class ReverseLayerF(Function):
-    def forward(ctx, x, lambd):
-        ctx.lambd = lambd
+    @staticmethod
+    def forward(ctx, x, alpha):
+        ctx.alpha = alpha
+
         return x.view_as(x)
 
+    @staticmethod
     def backward(ctx, grad_output):
-        return grad_output * -ctx.lambd
+        output = grad_output.neg() * ctx.alpha
+        return output, None
 
 
 def grad_reverse(x, lambd):
-    return ReverseLayerF().forward(x, lambd)
+    return ReverseLayerF.apply(x, lambd)
 
 
 # Neural Network Model (1 hidden layer)
