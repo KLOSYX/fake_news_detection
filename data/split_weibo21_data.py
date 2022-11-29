@@ -11,6 +11,7 @@ def main(args):
     all_data = pd.read_json(args.input_file, lines=True)
     # keep sample with images
     all_data = all_data[all_data.imgs.apply(len) > 0]
+    all_data["imgs"] = all_data.imgs.apply(lambda x: x[0])
     all_data["text"] = all_data.content.astype(str).apply(clean_text)
     all_data = all_data[["text", "imgs", "label", "split_comments"]]
     # split data
