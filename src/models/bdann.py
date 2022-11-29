@@ -144,6 +144,7 @@ class BDANN(FakeNewsBase):
         bert_name: str = "bert-base-uncased",
         dropout: float = 0.5,
         lr: float = 0.001,
+        domain_adv: bool = True,
     ):
         super().__init__()
         self.model = CNN_Fusion(
@@ -157,28 +158,29 @@ class BDANN(FakeNewsBase):
         # self.domain_criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
+        self.domain_adv = domain_adv
+
     def forward(self, item: FakeNewsItem):
         class_output, domain_output = self.model(item.text_encoded, item.image_encoded)
         return class_output, domain_output
 
-    def forward_loss(self, item: FakeNewsItem):
+    def training_step(self, item: FakeNewsItem, batch_idx: int) -> STEP_OUTPUT:
         class_output, domain_output = self.forward(item)
         class_loss = self.criterion(class_output, item.label)
-        domain_loss = self.criterion(domain_output, item.event_label)
-        loss = class_loss + domain_loss
-        return class_output, item.label, loss, class_loss, domain_loss
-
-    def training_step(self, item: FakeNewsItem, batch_idx: int) -> STEP_OUTPUT:
-        logits, labels, loss, class_loss, domain_loss = self.forward_loss(item)
-        preds = torch.argmax(logits, dim=1)  # (N,)
+        if self.domain_adv:
+            domain_loss = self.criterion(domain_output, item.event_label)
+            loss = class_loss + domain_loss
+            self.log_dict({"train/domain_loss": domain_loss})
+        else:
+            loss = class_loss
+        preds = torch.argmax(class_output, dim=1)  # (N,)
         self.log_dict(
             {
                 "train/loss": loss,
                 "train/class_loss": class_loss,
-                "train/domain_loss": domain_loss,
             }
         )
-        train_metrics_dict = self.train_metrics(preds, labels)
+        train_metrics_dict = self.train_metrics(preds, item.label)
         self.log_dict(train_metrics_dict)
         return loss
 
