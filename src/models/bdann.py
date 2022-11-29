@@ -20,27 +20,16 @@ from src.models.components.fake_news_base import FakeNewsBase
 
 
 class ReverseLayerF(Function):
-    @staticmethod
-    def forward(ctx, x):
+    def forward(ctx, x, lambd):
+        ctx.lambd = lambd
         return x.view_as(x)
 
-    @staticmethod
     def backward(ctx, grad_output):
-        return grad_output * -1
+        return grad_output * -ctx.lambd
 
 
-def grad_reverse(x):
-    return ReverseLayerF.apply(x)
-
-
-def to_var(x):
-    if torch.cuda.is_available():
-        x = x.cuda()
-    return Variable(x)
-
-
-def to_np(x):
-    return x.data.cpu().numpy()
+def grad_reverse(x, lambd):
+    return ReverseLayerF().forward(x, lambd)
 
 
 # Neural Network Model (1 hidden layer)
@@ -52,10 +41,12 @@ class CNN_Fusion(nn.Module):
         hidden_dim: int = 32,
         bert_name: str = "bert-base-uncased",
         dropout: float = 0.5,
+        lambd: float = 1.0,
     ):
         super().__init__()
 
         self.event_num = event_num
+        self.lambd = lambd
 
         self.class_num = class_num
         self.hidden_size = hidden_dim
@@ -130,7 +121,7 @@ class CNN_Fusion(nn.Module):
         # Fake or real
         class_output = self.class_classifier(text_image)
         # Domain (which Event )
-        reverse_feature = grad_reverse(text_image)
+        reverse_feature = grad_reverse(text_image, self.lambd)
         domain_output = self.domain_classifier(reverse_feature)
         return class_output, domain_output
 
@@ -144,6 +135,7 @@ class BDANN(FakeNewsBase):
         bert_name: str = "bert-base-uncased",
         dropout: float = 0.5,
         lr: float = 0.001,
+        lambd: float = 1.0,
         domain_adv: bool = True,
     ):
         super().__init__()
@@ -153,9 +145,9 @@ class BDANN(FakeNewsBase):
             hidden_dim,
             bert_name,
             dropout,
+            lambd,
         )
         self.criterion = nn.CrossEntropyLoss(ignore_index=-1)
-        # self.domain_criterion = nn.CrossEntropyLoss()
         self.lr = lr
 
         self.domain_adv = domain_adv

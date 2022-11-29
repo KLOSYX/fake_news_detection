@@ -6,4 +6,5 @@ hidden_dim: 32
 bert_name: "bert-base-uncased"
 dropout: 0.5
 lr: 0.001
+lambd: 1.0
 domain_adv: True
