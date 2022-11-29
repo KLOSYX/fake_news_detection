@@ -183,24 +183,26 @@ class BDANN(FakeNewsBase):
         return loss
 
     def validation_step(self, item: FakeNewsItem, batch_idx: int) -> Optional[STEP_OUTPUT]:
-        logits, labels, _, class_loss, _ = self.forward_loss(item)
+        class_output, _ = self.forward(item)
+        class_loss = self.criterion(class_output, item.label)
         self.log_dict(
             {
                 "val/loss": class_loss,
                 "val/class_loss": class_loss,
             }
         )
-        return (logits, labels)
+        return (class_output, item.label)
 
     def test_step(self, item: FakeNewsItem, batch_idx: int) -> Optional[STEP_OUTPUT]:
-        logits, labels, _, class_loss, _ = self.forward_loss(item)
+        class_output, _ = self.forward(item)
+        class_loss = self.criterion(class_output, item.label)
         self.log_dict(
             {
                 "test/loss": class_loss,
                 "test/class_loss": class_loss,
             }
         )
-        return (logits, labels)
+        return (class_output, item.label)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(

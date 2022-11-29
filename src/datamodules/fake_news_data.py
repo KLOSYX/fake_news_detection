@@ -200,6 +200,28 @@ class TwitterDatasetWithEvent(TwitterDataset):
         )
 
 
+class WeiboDatasetWithEvent(WeiboDataset):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.data["event_label"] = np.argmax(
+            pd.get_dummies(self.data.event_label).to_numpy(), axis=1
+        )
+
+    def __getitem__(self, idx: int) -> RawData:
+        text = self.data.iloc[idx]["text"]
+        img_name = self.data.iloc[idx]["imgs"]
+        img_path = self.img_path / img_name
+        img = Image.open(img_path).convert("RGB")
+        label = self.data.iloc[idx]["label"]
+        event_label = self.data.iloc[idx]["event_label"]
+        return RawData(
+            text,
+            self.transforms(img).unsqueeze(0) if self.transforms else img,
+            torch.tensor([label], dtype=torch.long),
+            torch.tensor([event_label], dtype=torch.long),
+        )
+
+
 class WeiboDatasetKB(WeiboDataset):
     def __init__(
         self,
@@ -478,6 +500,8 @@ class MultiModalData(DatamoduleBase):
             dataset_cls = Weibo21Dataset
         elif dataset_name == "twitter":
             dataset_cls = TwitterDataset
+        elif dataset_name == "weibo_with_event":
+            dataset_cls = WeiboDatasetWithEvent
         elif dataset_name == "twitter_with_event":
             dataset_cls = TwitterDatasetWithEvent
         elif dataset_name == "weibo_kb":
