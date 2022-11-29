@@ -112,11 +112,11 @@ class SpotFake(FakeNewsBase):
         # loss function
         self.criterion = nn.CrossEntropyLoss()
 
-        # freeze vgg
-        # self._freeze(self.vgg_model)
+        # freeze ve
+        self._freeze(self.visual_encoder)
 
         # freeze bert
-        # self._freeze(self.bert)
+        self._freeze(self.bert)
 
     def forward(self, item: FakeNewsItem) -> torch.Tensor:
         visual_out = self.visual_encoder(item.image_encoded)  # (batch_size, 2742)

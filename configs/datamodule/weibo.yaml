@@ -4,8 +4,9 @@ img_path: ${paths.data_dir}/MM17-WeiboRumorSet/images_filtered
 dataset_name: weibo
 tokenizer_name: bert-base-chinese
 processor_name: null
-train_path: ${paths.data_dir}/MM17-WeiboRumorSet/train_data.json
-test_path: ${paths.data_dir}/MM17-WeiboRumorSet/test_data.json
+train_path: ${paths.data_dir}/weibo/train_data.json
+val_path: ${paths.data_dir}/weibo/val_data.json
+test_path: ${paths.data_dir}/weibo/test_data.json
 max_length: 200
 val_set_ratio: 0.1
 batch_size: 32
