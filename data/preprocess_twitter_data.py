@@ -145,8 +145,12 @@ def main(args):
     )
 
     # %%
-    dev_data["label"] = dev_data.label.apply(lambda x: 0 if x == "real" else 1)
-    test_data["label"] = test_data.label.apply(lambda x: 0 if x == "real" else 1)
+    dev_data["label"] = dev_data.label.astype(str).apply(
+        lambda x: 0 if x.lower().strip() == "real" else 1
+    )
+    test_data["label"] = test_data.label.astype(str).apply(
+        lambda x: 0 if x.lower().strip() == "real" else 1
+    )
 
     # %%
     img_path_list = [
@@ -252,11 +256,11 @@ def main(args):
 
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
-    # dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
+    dev_data_valid = dev_data_valid.drop_duplicates(subset=["text", "imgs"])
 
     test_data_valid = test_data[test_data.imgs.apply(len) > 0]
     test_data_valid["imgs"] = test_data_valid.imgs.apply(lambda x: x[0])
-    # test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
+    test_data_valid = test_data_valid.drop_duplicates(subset=["text", "imgs"])
 
     if args.use_strict_preprocessor:
         preprocessor = EnglishProcessor(min_len=0, stopwords_path=root / "data" / "stopwords.txt")
@@ -267,10 +271,10 @@ def main(args):
     if args.min_text_length > 0:
         min_text_length = args.min_text_length
         dev_data_valid = dev_data_valid[
-            dev_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)
+            dev_data_valid.text.apply(lambda x: len(x.split(" ")) > min_text_length)
         ]
         test_data_valid = test_data_valid[
-            test_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)
+            test_data_valid.text.apply(lambda x: len(x.split(" ")) > min_text_length)
         ]
 
     # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
@@ -293,10 +297,19 @@ def main(args):
         "===== Saving data =====\n",
         "Valid training data size",
         dev_data_valid.shape[0],
+        "\n\t",
+        "Real:",
+        dev_data_valid[dev_data_valid.label == 0].shape[0],
+        "Fake:",
+        dev_data_valid[dev_data_valid.label == 1].shape[0],
         "\n",
         "Valid testing data size",
         test_data_valid.shape[0],
-        "\n",
+        "\n\t",
+        "Real:",
+        test_data_valid[test_data_valid.label == 0].shape[0],
+        "Fake:",
+        test_data_valid[test_data_valid.label == 1].shape[0],
     )
 
     dev_data_valid[["post_id", "text", "imgs", "label", "event"]].to_json(
@@ -318,7 +331,7 @@ if __name__ == "__main__":
 
     parser = ArgumentParser()
     parser.add_argument("--use_strict_preprocessor", action="store_true")
-    parser.add_argument("--min_text_length", type=int, default=0)
+    parser.add_argument("--min_text_length", type=int, default=2)
 
     args = parser.parse_args()
 
