@@ -87,6 +87,14 @@ def check_valid_image(
     return valid_img_list
 
 
+def remove_redundant_dev_img(img_list: List, dev_image_set: Set) -> List:
+    valid_img_list = []
+    for img in img_list:
+        if img.split(".")[0] in dev_image_set:
+            valid_img_list.append(img)
+    return valid_img_list
+
+
 def detection_lang(text: str):
     try:
         lang = detect(text)
@@ -130,6 +138,10 @@ def main(args):
             ),
         ],
         axis=0,
+    )
+
+    dev_img_set = pd.read_csv(
+        root / "data" / "image-verification-corpus-master" / "set_images.txt", sep="\t"
     )
 
     # %%
@@ -184,6 +196,11 @@ def main(args):
         ),
         axis=1,
     )
+
+    # dev set must be present in set_images.txt
+    img_set = set(dev_img_set.image_id.to_list())
+    dev_data["imgs"] = dev_data.imgs.apply(lambda x: remove_redundant_dev_img(x, img_set))
+
     print(f"===== Invalid images: {len(invalid_img_set)} in total ======")
     print(invalid_img_set)
 
@@ -256,14 +273,15 @@ def main(args):
             test_data_valid.text.apply(lambda x: len(x.split()) > min_text_length)
         ]
 
-    all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
-    all_data["event"] = all_data.imgs.apply(get_event_name)
-    all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
-    dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
-    test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
+    # all_data = pd.concat([dev_data_valid, test_data_valid], axis=0)
+    # all_data["event"] = all_data.imgs.apply(get_event_name)
+    # all_data["event"] = np.argmax(pd.get_dummies(all_data.event).to_numpy(), axis=1)
+    # dev_data_valid["event"] = all_data.event.iloc[: dev_data_valid.shape[0]]
+    # test_data_valid["event"] = all_data.event.iloc[dev_data_valid.shape[0] :]
 
     # ===== Update: remove event in test dataset =====
     dev_data_valid["event"] = dev_data_valid.imgs.apply(get_event_name)
+    print("Dev set event names: ", dev_data_valid.event.unique())
     dev_data_valid["event"] = np.argmax(pd.get_dummies(dev_data_valid.event).to_numpy(), axis=1)
     test_data_valid["event"] = -1
     # ===== end =====
