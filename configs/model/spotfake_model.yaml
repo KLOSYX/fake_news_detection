@@ -7,4 +7,4 @@ dropout_prob: 0
 bert_name: bert-base-uncased
 visual_encoder:
   _target_: src.models.spotfake.MobileNetV3
-pooler: cls_token
+pooler: avg_pool
