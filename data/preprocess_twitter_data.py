@@ -90,7 +90,7 @@ def check_valid_image(
 def remove_redundant_dev_img(img_list: List, dev_image_set: Set) -> List:
     valid_img_list = []
     for img in img_list:
-        if img.split(".")[0] in dev_image_set:
+        if img.split(".")[0].strip() in dev_image_set:
             valid_img_list.append(img)
     return valid_img_list
 
@@ -245,14 +245,18 @@ def main(args):
     #     axis=1,
     # )
 
-    dev_data = dev_data.merge(
-        translated_train_data[["post_id", "translated_text"]], on="post_id", how="left"
-    )
-    test_data = test_data.merge(
-        translated_test_data[["post_id", "translated_text"]], on="post_id", how="left"
-    )
-    dev_data["text"] = dev_data.translated_text.astype(str).apply(clean_text)
-    test_data["text"] = test_data.translated_text.astype(str).apply(clean_text)
+    if args.trans2en:
+        dev_data = dev_data.merge(
+            translated_train_data[["post_id", "translated_text"]], on="post_id", how="left"
+        )
+        test_data = test_data.merge(
+            translated_test_data[["post_id", "translated_text"]], on="post_id", how="left"
+        )
+        dev_data["text"] = dev_data.translated_text.astype(str).apply(clean_text)
+        test_data["text"] = test_data.translated_text.astype(str).apply(clean_text)
+    else:
+        dev_data["text"] = dev_data.post_text.apply(clean_text)
+        test_data["text"] = test_data.post_text.apply(clean_text)
 
     dev_data_valid = dev_data[dev_data.imgs.apply(len) > 0]
     dev_data_valid["imgs"] = dev_data_valid.imgs.apply(lambda x: x[0])
@@ -330,6 +334,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
+    parser.add_argument("--trans2en", action="store_true")
     parser.add_argument("--use_strict_preprocessor", action="store_true")
     parser.add_argument("--min_text_length", type=int, default=2)
 
