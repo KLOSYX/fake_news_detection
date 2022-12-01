@@ -90,7 +90,7 @@ python src/train.py experiment=spotfake_twitter
 
 ```bash
 # on weibo dataset
-# todo: python src/train.py experiment=bdann_weibo
+python src/train.py experiment=bdann_weibo
 
 # on twitter dataset
 python src/train.py experiment=bdann_twitter
