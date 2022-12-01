@@ -15,9 +15,12 @@ root = pyrootutils.setup_root(".", pythonpath=True)
 
 from src.utils.data_util import clean_text
 from src.utils.data_util.english_preprocessor import EnglishProcessor
+from src.utils.pylogger import get_pylogger
 
 DetectorFactory.seed = 0
 pd.options.mode.chained_assignment = None  # default='warn'
+
+log = get_pylogger(__name__)
 
 
 def translate_text(text: str, lang_tgt: str, retries: int = 3):
@@ -151,6 +154,8 @@ def main(args):
     test_data["label"] = test_data.label.astype(str).apply(
         lambda x: 0 if x.lower().strip() == "real" else 1
     )
+    dev_data["post_id"] = dev_data["post_id"].astype(int)
+    test_data["post_id"] = test_data["post_id"].astype(int)
 
     # %%
     img_path_list = [
@@ -208,14 +213,34 @@ def main(args):
     print(f"===== Invalid images: {len(invalid_img_set)} in total ======")
     print(invalid_img_set)
 
-    translated_train_data = pd.read_json(
-        root / "data" / "image-verification-corpus-master" / "train_data_tencent_translated.json",
-        lines=True,
-    )
-    translated_test_data = pd.read_json(
-        root / "data" / "image-verification-corpus-master" / "test_data_tencent_translated.json",
-        lines=True,
-    )
+    if args.use_tencent_trans:
+        log.info("===== Using Tencent Translate =====")
+        translated_train_data = pd.read_json(
+            root
+            / "data"
+            / "image-verification-corpus-master"
+            / "train_data_tencent_translated.json",
+            lines=True,
+        )
+        translated_test_data = pd.read_json(
+            root
+            / "data"
+            / "image-verification-corpus-master"
+            / "test_data_tencent_translated.json",
+            lines=True,
+        )
+    else:
+        log.info("===== Using Google Translate =====")
+        translated_train_data = pd.read_json(
+            root / "data" / "image-verification-corpus-master" / "translated_train.json",
+            lines=True,
+        )
+        translated_test_data = pd.read_json(
+            root / "data" / "image-verification-corpus-master" / "translated_test.json",
+            lines=True,
+        )
+    translated_train_data["post_id"] = translated_train_data.post_id.astype(int)
+    translated_test_data["post_id"] = translated_test_data.post_id.astype(int)
 
     # dev_data["text"] = dev_data.post_text.apply(clean_text)
     # dev_data = dev_data[dev_data.text.apply(lambda x: len(x) > 10)]
@@ -246,6 +271,7 @@ def main(args):
     # )
 
     if args.trans2en:
+        log.info("===== Translating to English =====")
         dev_data = dev_data.merge(
             translated_train_data[["post_id", "translated_text"]], on="post_id", how="left"
         )
@@ -255,6 +281,7 @@ def main(args):
         dev_data["text"] = dev_data.translated_text.astype(str).apply(clean_text)
         test_data["text"] = test_data.translated_text.astype(str).apply(clean_text)
     else:
+        log.info("===== Using original multilingual text =====")
         dev_data["text"] = dev_data.post_text.apply(clean_text)
         test_data["text"] = test_data.post_text.apply(clean_text)
 
@@ -334,6 +361,7 @@ if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
+    parser.add_argument("--use_tencent_trans", action="store_true")
     parser.add_argument("--trans2en", action="store_true")
     parser.add_argument("--use_strict_preprocessor", action="store_true")
     parser.add_argument("--min_text_length", type=int, default=2)
