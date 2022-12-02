@@ -52,6 +52,9 @@ model:
   lr: 0.001
 
 datamodule:
+  train_path: ${paths.data_dir}/weibo/train_data_en.json
+  val_path: ${paths.data_dir}/weibo/val_data_en.json
+  test_path: ${paths.data_dir}/weibo/test_data_en.json
   tokenizer_name: ${bert_name_or_path}
   num_workers: 1
   batch_size: 8
