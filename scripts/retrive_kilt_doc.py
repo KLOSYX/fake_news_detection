@@ -21,7 +21,7 @@ def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # device = torch.device("cpu")
 
-    dfs: List[pd.DataFrame] = []
+    dfs: list[pd.DataFrame] = []
     for f_name in args.in_files:
         df = pandas.read_json(f_name, lines=True)
         dfs.append(df)
@@ -38,7 +38,7 @@ def main(args):
         .to(device)
     )
 
-    outputs: List[Dict[str, str]] = []
+    outputs: list[dict[str, str]] = []
 
     for i, row in tqdm(data.iterrows(), desc="Generating titles", total=len(data)):
         docs = model.generate(
