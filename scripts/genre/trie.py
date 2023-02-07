@@ -10,7 +10,7 @@ from typing import Dict, List
 
 
 class Trie:
-    def __init__(self, sequences: List[List[int]] = []):
+    def __init__(self, sequences: list[list[int]] = []):
         self.trie_dict = {}
         self.len = 0
         if sequences:
@@ -25,11 +25,11 @@ class Trie:
         self.append_trie = trie
         self.bos_token_id = bos_token_id
 
-    def add(self, sequence: List[int]):
+    def add(self, sequence: list[int]):
         Trie._add_to_trie(sequence, self.trie_dict)
         self.len += 1
 
-    def get(self, prefix_sequence: List[int]):
+    def get(self, prefix_sequence: list[int]):
         return Trie._get_from_trie(
             prefix_sequence, self.trie_dict, self.append_trie, self.bos_token_id
         )
@@ -42,7 +42,7 @@ class Trie:
         return trie
 
     @staticmethod
-    def _add_to_trie(sequence: List[int], trie_dict: Dict):
+    def _add_to_trie(sequence: list[int], trie_dict: dict):
         if sequence:
             if sequence[0] not in trie_dict:
                 trie_dict[sequence[0]] = {}
@@ -50,8 +50,8 @@ class Trie:
 
     @staticmethod
     def _get_from_trie(
-        prefix_sequence: List[int],
-        trie_dict: Dict,
+        prefix_sequence: list[int],
+        trie_dict: dict,
         append_trie=None,
         bos_token_id: int = None,
     ):

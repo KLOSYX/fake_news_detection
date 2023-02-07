@@ -180,7 +180,7 @@ class BDANN(FakeNewsBase):
         self.log_dict(train_metrics_dict)
         return loss
 
-    def validation_step(self, item: FakeNewsItem, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, item: FakeNewsItem, batch_idx: int) -> STEP_OUTPUT | None:
         class_output, _ = self.forward(item)
         class_loss = self.criterion(class_output, item.label)
         self.log_dict(
@@ -191,7 +191,7 @@ class BDANN(FakeNewsBase):
         )
         return (class_output, item.label)
 
-    def test_step(self, item: FakeNewsItem, batch_idx: int) -> Optional[STEP_OUTPUT]:
+    def test_step(self, item: FakeNewsItem, batch_idx: int) -> STEP_OUTPUT | None:
         class_output, _ = self.forward(item)
         class_loss = self.criterion(class_output, item.label)
         self.log_dict(

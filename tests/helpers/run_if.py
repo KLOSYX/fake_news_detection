@@ -40,9 +40,9 @@ class RunIf:
     def __new__(
         self,
         min_gpus: int = 0,
-        min_torch: Optional[str] = None,
-        max_torch: Optional[str] = None,
-        min_python: Optional[str] = None,
+        min_torch: str | None = None,
+        max_torch: str | None = None,
+        min_python: str | None = None,
         skip_windows: bool = False,
         sh: bool = False,
         tpu: bool = False,

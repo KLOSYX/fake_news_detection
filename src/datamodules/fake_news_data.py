@@ -54,11 +54,11 @@ class RawData:
         RawData: RawData object
     """
 
-    text: Optional[str] = None
-    image: Optional[Union[Image.Image, torch.Tensor]] = None
-    label: Optional[torch.Tensor] = None
-    event: Optional[torch.Tensor] = None
-    kb_annotations: Optional[List[Dict]] = None
+    text: str | None = None
+    image: Image.Image | torch.Tensor | None = None
+    label: torch.Tensor | None = None
+    event: torch.Tensor | None = None
+    kb_annotations: list[dict] | None = None
 
 
 @dataclass
@@ -75,12 +75,12 @@ class FakeNewsItem:
         FakeNewsItem: FakeNewsItem object
     """
 
-    text_encoded: Optional[BatchEncoding] = None
-    image_encoded: Optional[Union[BatchFeature, torch.Tensor]] = None
-    label: Optional[torch.Tensor] = None
-    event_label: Optional[torch.Tensor] = None
+    text_encoded: BatchEncoding | None = None
+    image_encoded: BatchFeature | torch.Tensor | None = None
+    label: torch.Tensor | None = None
+    event_label: torch.Tensor | None = None
 
-    def to(self, device: Union[str, torch.device]) -> "FakeNewsItem":
+    def to(self, device: str | torch.device) -> "FakeNewsItem":
         """Move tensors to device."""
         if self.text_encoded is not None:
             self.text_encoded = self.text_encoded.to(device)
@@ -149,9 +149,9 @@ class GaussianBlur:
 class WeiboDataset(Dataset):
     def __init__(
         self,
-        img_path: Union[str, Path],
-        data_path: Union[str, Path],
-        transforms: Optional[transforms.Compose],
+        img_path: str | Path,
+        data_path: str | Path,
+        transforms: transforms.Compose | None,
     ) -> None:
         assert img_path and data_path, "img_path and data_path must be provided"
         self.data = pd.read_json(data_path, lines=True)
@@ -225,10 +225,10 @@ class WeiboDatasetWithEvent(WeiboDataset):
 class WeiboDatasetKB(WeiboDataset):
     def __init__(
         self,
-        img_path: Union[str, Path],
-        data_path: Union[str, Path],
-        w2v_path: Union[str, Path],
-        transforms: Optional[transforms.Compose],
+        img_path: str | Path,
+        data_path: str | Path,
+        w2v_path: str | Path,
+        transforms: transforms.Compose | None,
     ) -> None:
         super().__init__(img_path, data_path, transforms)
         self.w2v = np.load(w2v_path)
@@ -240,7 +240,7 @@ class WeiboDatasetKB(WeiboDataset):
         img_path = self.img_path / img_name
         img = Image.open(img_path).convert("RGB")
         label = self.data.iloc[idx]["label"]
-        annotations: List[Dict] = self.data.iloc[idx]["wiki_annotations"]
+        annotations: list[dict] = self.data.iloc[idx]["wiki_annotations"]
         for a in annotations:
             a["vecs"] = torch.from_numpy(self.w2v[a["ids"]])
             a.pop("ids")
@@ -258,12 +258,12 @@ class TwitterDatasetKB(WeiboDatasetKB):
 
 
 class Collector:
-    def __init__(self, tokenizer: Any, processor: Optional[Any], max_length: int = 200) -> None:
+    def __init__(self, tokenizer: Any, processor: Any | None, max_length: int = 200) -> None:
         self.tokenizer = tokenizer
         self.processor = processor
         self.max_length = max_length
 
-    def __call__(self, data: List[RawData]) -> FakeNewsItem:
+    def __call__(self, data: list[RawData]) -> FakeNewsItem:
         texts, imgs, labels = [], [], []
         for d in data:
             texts.append(d.text)
@@ -287,7 +287,7 @@ class Collector:
 
 
 class CollectorKB(Collector):
-    def __call__(self, data: List[RawData]) -> FakeNewsItem:
+    def __call__(self, data: list[RawData]) -> FakeNewsItem:
         texts, imgs, labels, annotations = [], [], [], []
         for d in data:
             texts.append(d.text)
@@ -337,7 +337,7 @@ class CollectorKB(Collector):
     @staticmethod
     def _get_cross_attention_mask(text_encodeds, annotations) -> torch.Tensor:
         atts = torch.zeros(text_encodeds.input_ids.size(0), text_encodeds.input_ids.size(1), 32)
-        entity_map_list: List[Dict[int, int]] = []
+        entity_map_list: list[dict[int, int]] = []
         for ann in annotations:
             entity_map = {}
             for i, a in enumerate(ann):
@@ -355,7 +355,7 @@ class CollectorKB(Collector):
 
 
 class CollectorWithEvent(Collector):
-    def __call__(self, data: List[RawData]) -> FakeNewsItem:
+    def __call__(self, data: list[RawData]) -> FakeNewsItem:
         texts, imgs, labels, event_labels = [], [], [], []
         for d in data:
             texts.append(d.text)
@@ -384,15 +384,15 @@ class MultiModalData(DatamoduleBase):
     def __init__(
         self,
         img_path: str,
-        train_path: Optional[str] = None,
-        val_path: Optional[str] = None,
-        test_path: Optional[str] = None,
-        w2v_path: Optional[str] = None,
+        train_path: str | None = None,
+        val_path: str | None = None,
+        test_path: str | None = None,
+        w2v_path: str | None = None,
         val_set_ratio: float = 0.2,
         batch_size: int = 8,
         num_workers: int = 0,
         tokenizer_name: str = "bert-base-chinese",
-        processor_name: Optional[str] = None,
+        processor_name: str | None = None,
         max_length: int = 200,
         dataset_name: str = "weibo",
         use_test_as_val: bool = False,
@@ -442,7 +442,7 @@ class MultiModalData(DatamoduleBase):
         self.simclr_trans = simclr_trans
         self.vis_model_type = vis_model_type
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str | None = None) -> None:
         self.collector = self._get_collector()
         if stage == "fit" or stage is None:
             dataset = self._get_dataset(stage)
@@ -510,7 +510,7 @@ class MultiModalData(DatamoduleBase):
             dataset_cls = TwitterDatasetKB
         return dataset_cls
 
-    def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
+    def _get_dataset(self, stage: str | None = "fit") -> Dataset:
         # get dataset path
         if stage == "fit":
             data_path = self.train_path

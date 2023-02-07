@@ -646,7 +646,7 @@ class BertModel(BertPreTrainedModel):
     def get_extended_attention_mask(
         self,
         attention_mask: Tensor,
-        input_shape: Tuple[int, int],
+        input_shape: tuple[int, int],
         device: device,
         is_decoder: bool,
     ) -> Tensor:

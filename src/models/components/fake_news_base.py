@@ -63,12 +63,12 @@ class FakeNewsBase(pl.LightningModule):
         self.log_dict(train_metrics_dict)
         return loss
 
-    def validation_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
+    def validation_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
         logits, labels, loss = self.forward_loss(batch)
         self.log_dict({"val/loss": loss})
         return (logits, labels)
 
-    def validation_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+    def validation_epoch_end(self, outputs: EPOCH_OUTPUT | list[EPOCH_OUTPUT]) -> None:
         self.val_metrics.reset()
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)
@@ -86,12 +86,12 @@ class FakeNewsBase(pl.LightningModule):
             prog_bar=True,
         )
 
-    def test_step(self, batch, batch_idx) -> Optional[STEP_OUTPUT]:
+    def test_step(self, batch, batch_idx) -> STEP_OUTPUT | None:
         logits, labels, loss = self.forward_loss(batch)
         self.log_dict({"test/loss": loss})
         return (logits, labels)
 
-    def test_epoch_end(self, outputs: Union[EPOCH_OUTPUT, List[EPOCH_OUTPUT]]) -> None:
+    def test_epoch_end(self, outputs: EPOCH_OUTPUT | list[EPOCH_OUTPUT]) -> None:
         self.test_metrics.reset()
         logits, labels = zip(*outputs)
         preds = torch.argmax(torch.cat(logits), dim=1)

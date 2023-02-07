@@ -63,12 +63,12 @@ def refine_images(root_dir: Path, path: Path):
 
 
 def check_valid_image(
-    img_dict: Dict,
-    img_ids: List[str],
+    img_dict: dict,
+    img_ids: list[str],
     post_id: str,
-    invalid_img_set: Set[str],
+    invalid_img_set: set[str],
     mediaeval2015_data: pd.DataFrame,
-) -> List[str]:
+) -> list[str]:
     """Filter out invalid images According to https://github.com/MKLab-ITI/image-verification-
     corpus/issues/4#issuecomment-1123350335, the images in the dataset could also present in the
     MediaEval 2015 dataset."""
@@ -90,7 +90,7 @@ def check_valid_image(
     return valid_img_list
 
 
-def remove_redundant_dev_img(img_list: List, dev_image_set: Set) -> List:
+def remove_redundant_dev_img(img_list: list, dev_image_set: set) -> list:
     valid_img_list = []
     for img in img_list:
         if img.split(".")[0].strip() in dev_image_set:

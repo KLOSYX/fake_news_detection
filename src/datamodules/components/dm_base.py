@@ -17,19 +17,19 @@ class DatamoduleBase(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
 
-        self.train_data: Optional[Dataset] = None
-        self.val_data: Optional[Dataset] = None
-        self.test_data: Optional[Dataset] = None
+        self.train_data: Dataset | None = None
+        self.val_data: Dataset | None = None
+        self.test_data: Dataset | None = None
 
         self.collector = None
 
-    def _get_dataset(self, stage: Optional[str] = "fit") -> Dataset:
+    def _get_dataset(self, stage: str | None = "fit") -> Dataset:
         raise NotImplementedError("get_dataset_args must be implemented!")
 
     def _get_collector(self) -> Any:
         raise NotImplementedError("_init_collector must be implemented!")
 
-    def setup(self, stage: Optional[str] = None) -> None:
+    def setup(self, stage: str | None = None) -> None:
         self.collector = self._get_collector()
         if stage == "fit" or stage is None:
             dataset = self._get_dataset(stage)

@@ -15,7 +15,7 @@ class TextCNN(nn.Module):
         self,
         embedding_dim: int = 300,
         conv_out_channels: int = 128,
-        kernel_sizes: Tuple[int] = (3, 4, 5),
+        kernel_sizes: tuple[int] = (3, 4, 5),
         dropout_prob: float = 0.0,
         hidden_size: int = 64,
         output_size: int = 768,

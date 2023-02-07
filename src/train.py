@@ -47,7 +47,7 @@ log = utils.get_pylogger(__name__)
 
 
 @utils.task_wrapper
-def train(cfg: DictConfig) -> Tuple[dict, dict]:
+def train(cfg: DictConfig) -> tuple[dict, dict]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
     training.
 
@@ -72,10 +72,10 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
     model: LightningModule = hydra.utils.instantiate(cfg.model)
 
     log.info("Instantiating callbacks...")
-    callbacks: List[Callback] = utils.instantiate_callbacks(cfg.get("callbacks"))
+    callbacks: list[Callback] = utils.instantiate_callbacks(cfg.get("callbacks"))
 
     log.info("Instantiating loggers...")
-    logger: List[LightningLoggerBase] = utils.instantiate_loggers(cfg.get("logger"))
+    logger: list[LightningLoggerBase] = utils.instantiate_loggers(cfg.get("logger"))
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
@@ -117,7 +117,7 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
 
 
 @hydra.main(version_base="1.2", config_path=root / "configs", config_name="train.yaml")
-def main(cfg: DictConfig) -> Optional[float]:
+def main(cfg: DictConfig) -> float | None:
 
     # train the model
     metric_dict, _ = train(cfg)
