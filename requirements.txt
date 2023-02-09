@@ -38,7 +38,7 @@ opencv-python-headless
 
 sh~=1.14.3
 
-urllib3~=1.26.12
+urllib3~=1.26.14
 langdetect~=1.0.9
 
 timm~=0.6.12
