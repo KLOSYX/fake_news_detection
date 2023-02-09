@@ -41,5 +41,5 @@ sh~=1.14.3
 urllib3~=1.26.12
 langdetect~=1.0.9
 
-timm~=0.4.12
+timm~=0.6.12
 fairscale~=0.4.4
