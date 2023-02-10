@@ -36,7 +36,7 @@ rich~=13.3.1
 opencv-python-headless
 # sh    # for running bash commands in some tests (linux/macos only)
 
-sh~=1.14.3
+sh~=2.0.0
 
 urllib3~=1.26.14
 langdetect~=1.0.9
