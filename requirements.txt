@@ -11,7 +11,7 @@ jieba == 0.42.1
 kiwisolver == 1.4.4
 matplotlib == 3.6.1
 numpy == 1.24.2
-omegaconf == 2.2.3
+omegaconf == 2.3.0
 packaging == 23.0
 pandas == 1.5.3
 pyrootutils == 1.0.4
