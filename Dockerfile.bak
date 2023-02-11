@@ -5,7 +5,7 @@
 # pytorch       latest (pip)
 # ==================================================================
 
-FROM anibali/pytorch:1.13.0-cuda11.8-ubuntu22.04
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 ENV LANG C.UTF-8
 # Copy requirements.txt
 COPY requirements.txt /tmp/requirements.txt
@@ -34,6 +34,19 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
         openssh-server \
         screen \
         && \
+# ==================================================================
+# python
+# ------------------------------------------------------------------
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
+        python3.9 \
+        python3.9-dev \
+        python3.9-distutils \
+        && \
+    wget -O ~/get-pip.py \
+        https://bootstrap.pypa.io/get-pip.py && \
+    python3.9 ~/get-pip.py && \
+    ln -s /usr/bin/python3.9 /usr/local/bin/python && \
     $PIP_INSTALL \
         numpy \
         scipy \
