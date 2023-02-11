@@ -22,17 +22,25 @@ class FakeNewsBase(pl.LightningModule):
     ):
         metric_collection = torchmetrics.MetricCollection(
             dict(
-                accuracy=torchmetrics.classification.Accuracy(),
+                accuracy=torchmetrics.classification.Accuracy(task="multiclass", num_classes=2),
                 fake_precision=torchmetrics.classification.Precision(
-                    ignore_index=0, num_classes=2
+                    task="multiclass", ignore_index=0, num_classes=2
                 ),
-                fake_recall=torchmetrics.classification.Recall(ignore_index=0, num_classes=2),
-                fake_f1score=torchmetrics.classification.F1Score(ignore_index=0, num_classes=2),
+                fake_recall=torchmetrics.classification.Recall(
+                    task="multiclass", ignore_index=0, num_classes=2
+                ),
+                fake_f1score=torchmetrics.classification.F1Score(
+                    task="multiclass", ignore_index=0, num_classes=2
+                ),
                 real_precision=torchmetrics.classification.Precision(
-                    ignore_index=1, num_classes=2
+                    task="multiclass", ignore_index=1, num_classes=2
                 ),
-                real_recall=torchmetrics.classification.Recall(ignore_index=1, num_classes=2),
-                real_f1score=torchmetrics.classification.F1Score(ignore_index=1, num_classes=2),
+                real_recall=torchmetrics.classification.Recall(
+                    task="multiclass", ignore_index=1, num_classes=2
+                ),
+                real_f1score=torchmetrics.classification.F1Score(
+                    task="multiclass", ignore_index=1, num_classes=2
+                ),
             ),
         )
         return metric_collection
