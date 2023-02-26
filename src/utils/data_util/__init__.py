@@ -41,7 +41,7 @@ def clean_text(text):
     text = re.sub(r"\'m", " am", text)
     text = re.sub(r"n\'t", " not", text)
     text = re.sub(r"#", " #", text)
-    text = re.sub(r"@", " @", text)
+    text = re.sub(r"@.*? ", "@user", text)
     text = re.sub(r"[\!\?\.\,\+\-\$\%\^\>\<\=\:\;\*\(\)\{\}\[\]\/\~\&\'\|]", " ", text)
     text = re.sub(
         r"(?<=[^.])((?:(?:https?|ftp|file)://|(?<![a-zA-Z\-\.])www\.)"
