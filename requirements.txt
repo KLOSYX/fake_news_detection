@@ -20,15 +20,21 @@ pytorch_lightning == 1.9.0
 requests == 2.28.2
 scikit_learn == 1.2.1
 setuptools >= 65.5.1
-torch == 1.13.1
-torchvision
+
+# --------- torch ---------- #
+--extra-index-url https://download.pytorch.org/whl/cu113
+torch == 1.12.1+cu113
+torchvision == 0.13.1+cu113
 torchtext
+torchaudio
+
 torchmetrics == 0.11.1
 tqdm == 4.64.1
 transformers == 4.26.0
 wandb == 0.13.4
 
 # --------- others --------- #
+tensorboard
 pyrootutils
 pytest
 pre-commit

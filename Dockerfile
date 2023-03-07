@@ -5,8 +5,9 @@
 # pytorch       latest (pip)
 # ==================================================================
 
-FROM nvcr.io/nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04
+FROM nvcr.io/nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 ENV LANG C.UTF-8
+ADD requirements.txt /tmp/
 
 # Remove any third-party apt sources to avoid issues with expiring keys.
 RUN rm -f /etc/apt/sources.list.d/*.list
@@ -19,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     git \
     bzip2 \
     libx11-6 \
-	&& rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 
 # Create a working directory
@@ -28,17 +29,18 @@ WORKDIR /app
 
 # Create a non-root user and switch to it
 RUN adduser --disabled-password --gecos '' --shell /bin/bash user \
- && chown -R user:user /app
+&& chown -R user:user /app
 RUN echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
 USER user
 
 # All users can use /home/user as their home directory
 ENV HOME=/home/user
+# ENV HOME=/root
 RUN mkdir $HOME/.cache $HOME/.config \
  && chmod -R 777 $HOME
 
 # Download anaconda install
-RUN curl -sLo miniconda3.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+RUN curl -sLo miniconda3.sh https://repo.anaconda.com/miniconda/Miniconda3-py310_23.1.0-1-Linux-x86_64.sh && \
     # Turn executable attribute
     chmod +x miniconda3.sh && \
     # Install Anaconda
@@ -50,16 +52,18 @@ RUN curl -sLo miniconda3.sh https://repo.continuum.io/miniconda/Miniconda3-lates
 ENV CONDA_AUTO_UPDATE_CONDA=false \
     PATH=$HOME/miniconda3/bin:$PATH
 
+# Init conda
+RUN cd $HOME/miniconda3/bin && sudo ./conda init --all --system
+
 # Run bash. From there you can use pip or conda to install needed packages
 CMD ["bash"]
 
 RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
-    PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
     GIT_CLONE="git clone --depth 10" && \
     sudo apt-get update && \
 # ==================================================================
 # tools
-# ------------------------------------------------------------------
+# ------------------------------------------------------------------    
     sudo DEBIAN_FRONTEND=noninteractive $APT_INSTALL \
         build-essential \
         apt-utils \
@@ -76,17 +80,17 @@ RUN APT_INSTALL="apt-get install -y --no-install-recommends" && \
         screen \
         fish \
         htop \
-        proxychains4 \
-        && \
-	sudo chsh -s /usr/bin/fish user && \
-	conda init fish && conda init bash && \
+        proxychains4
+
+# ==================================================================
+# install requirements
+# ------------------------------------------------------------------
+RUN PIP_INSTALL="python -m pip --no-cache-dir install --upgrade" && \
+        $PIP_INSTALL -r /tmp/requirements.txt
 # ==================================================================
 # config & cleanup
 # ------------------------------------------------------------------
-    sudo ldconfig && \
-    sudo apt-get clean && \
-    sudo apt-get autoremove && \
-    sudo rm -rf /var/lib/apt/lists/* /tmp/*
-
-# Set the default command to fish
-CMD ["fish"]
+RUN sudo ldconfig && \
+        sudo apt-get clean && \
+        sudo apt-get autoremove && \
+        sudo rm -rf /var/lib/apt/lists/* /tmp/*
