@@ -30,7 +30,7 @@ torchaudio
 
 torchmetrics == 0.11.1
 tqdm == 4.64.1
-transformers == 4.26.0
+transformers == 4.29.0
 wandb == 0.13.4
 
 # --------- others --------- #
